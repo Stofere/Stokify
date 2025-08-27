@@ -38,13 +38,28 @@ new class extends Component
                         {{ __('Kategori') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('pengguna')" :active="request()->routeIs('pengguna')" wire:navigate>
-                        {{ __('Pengguna') }}
+                    <x-nav-link :href="route('pelanggan')" :active="request()->routeIs('pelanggan')">
+                        {{ __('Pelanggan') }}
                     </x-nav-link>
+
+                    @if (Auth::user()->peran === 'admin')
+                        <x-nav-link :href="route('pengguna')" :active="request()->routeIs('pengguna')">
+                            {{ __('Pengguna') }}
+                        </x-nav-link>
+                    @endif
 
                     <x-nav-link :href="route('produk')" :active="request()->routeIs('produk')">
                         {{ __('Produk') }}
                     </x-nav-link>
+
+                    <x-nav-link :href="route('penjualan.buat')" :active="request()->routeIs('penjualan.buat')">
+                        {{ __('Buat Penjualan') }}
+                    </x-nav-link>
+
+                    <x-nav-link :href="route('penjualan.riwayat')" :active="request()->routeIs('penjualan.riwayat')">
+                        {{ __('Riwayat Penjualan') }}
+                    </x-nav-link>
+
                 </div>
             </div>
 

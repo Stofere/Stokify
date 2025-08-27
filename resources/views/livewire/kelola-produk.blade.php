@@ -1,4 +1,4 @@
-<div>
+<div x-data="{ isZoomModalOpen: false, zoomedImageUrl: '' }">
     {{-- 1. HEADER HALAMAN --}}
     {{-- Ini akan ditempatkan di bagian header layout utama Anda --}}
     <x-slot name="header">
@@ -40,11 +40,15 @@
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Produk</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Jual</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelacakan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satuan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lokasi</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
@@ -52,11 +56,37 @@
                                 @forelse ($produks as $index => $produk)
                                     <tr wire:key="{{ $produk->id }}">
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produks->firstItem() + $index }}</td>
+                                        
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @if ($produk->foto)
+                                                <img 
+                                                    src="{{ asset('storage/' . $produk->foto) }}" 
+                                                    alt="{{ $produk->nama_produk }}" 
+                                                    class="h-12 w-12 object-cover rounded-md cursor-pointer hover:scale-110 transition-transform duration-200"
+                                                    @click="isZoomModalOpen = true; zoomedImageUrl = '{{ asset('storage/' . $produk->foto) }}'">
+                                            @else
+                                                {{-- Placeholder jika tidak ada foto --}}
+                                                <div class="h-12 w-12 bg-gray-200 flex items-center justify-center rounded-md">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produk->nama_produk }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kode_barang ?? 'N/A' }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kategori->nama ?? 'N/A' }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kode_barang ?? '-' }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kategori->nama ?? '-' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($produk->harga_jual_standar, 0, ',', '.') }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produk->stok }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @if($produk->lacak_stok)
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Aktif</span>
+                                            @else
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Nonaktif</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">{{ $produk->satuan }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">{{ $produk->lokasi ?? '-' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button wire:click="edit({{ $produk->id }})" class="text-indigo-600 hover:text-indigo-900">Edit</button>
                                             <button wire:click="confirmDelete({{ $produk->id }})" class="text-red-600 hover:text-red-900 ml-4">Hapus</button>
@@ -64,7 +94,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-6 py-4 whitespace-nowrap text-center text-gray-500">
+                                        <td colspan="10" class="px-6 py-4 whitespace-nowrap text-center text-gray-500">
                                             Tidak ada data produk ditemukan.
                                         </td>
                                     </tr>
@@ -98,6 +128,7 @@
                             {{ $produkId ? 'Edit Produk' : 'Tambah Produk Baru' }}
                         </h3>
                         <div class="mt-4 space-y-4">
+                            
                             {{-- Form Input --}}
                             <div>
                                 <label for="id_kategori" class="block text-sm font-medium text-gray-700">Kategori</label>
@@ -117,11 +148,11 @@
                             </div>
 
                             <div>
-                                <label for="kode_barang" class="block text-sm font-medium text-gray-700">Kode Barang (SKU)</label>
+                                <label for="kode_barang" class="block text-sm font-medium text-gray-700">Kode Barang (SKU) Opsional</label>
                                 <input type="text" wire:model.defer="kode_barang" id="kode_barang" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                                 @error('kode_barang') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
-
+                            
                             <div>
                                 <label for="harga_jual_standar" class="block text-sm font-medium text-gray-700">Harga Jual Standar</label>
                                 <input type="number" wire:model.defer="harga_jual_standar" id="harga_jual_standar" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
@@ -130,14 +161,38 @@
 
                             <div>
                                 <label for="satuan" class="block text-sm font-medium text-gray-700">Satuan</label>
-                                <input type="text" wire:model.defer="satuan" id="satuan" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" placeholder="pcs, rol, lusin, dll">
+                                <select wire:model.defer="satuan" id="satuan" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    <option value="" disabled selected>Pilih Satuan</option>
+                                    <option value="Unit">Unit</option>
+                                    <option value="pcs">Pcs</option>
+                                    <option value="lusin">Lusin</option>
+                                    <option value="kg">Kg</option>
+                                    <option value="meter">Meter</option>
+                                </select>
                                 @error('satuan') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
 
-                            <div>
-                                <label for="deskripsi" class="block text-sm font-medium text-gray-700">Deskripsi</label>
-                                <textarea wire:model.defer="deskripsi" id="deskripsi" rows="3" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"></textarea>
-                                @error('deskripsi') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            {{-- 1. Bungkus input Stok dan Lacak Stok dengan div x-data --}}
+                            <div x-data="{ lacakStok: @entangle('lacak_stok') }">
+
+                                {{-- 2. Checkbox untuk Lacak Stok --}}
+                                <div class="mt-4">
+                                    <label for="lacak_stok" class="flex items-center">
+                                        {{-- 'x-model' akan mengubah nilai 'lacakStok' di Alpine secara real-time --}}
+                                        <input type="checkbox" x-model="lacakStok" id="lacak_stok" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                        <span class="ms-2 text-sm text-gray-600">Lacak Stok Produk Ini</span>
+                                    </label>
+                                    <p class="text-xs text-gray-500 mt-1">Jika diaktifkan, stok akan berkurang otomatis saat terjadi penjualan.</p>
+                                </div>
+
+                                {{-- 3. Input Jumlah Stok (Kondisional) --}}
+                                {{-- 'x-show="lacakStok"' akan menampilkan div ini HANYA JIKA lacakStok == true --}}
+                                <div x-show="lacakStok" x-transition class="mt-4">
+                                    <label for="stok" class="block text-sm font-medium text-gray-700">Jumlah Stok Saat Ini</label>
+                                    <input type="number" wire:model.defer="stok" id="stok" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    @error('stok') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+
                             </div>
 
                             <div>
@@ -162,6 +217,18 @@
                                 @error('foto') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
 
+                            <div>
+                                <label for="lokasi" class="block text-sm font-medium text-gray-700">Lokasi Rak (Opsional)</label>
+                                <input type="text" wire:model.defer="lokasi" id="lokasi" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" placeholder="Contoh: A-01, Rak 5 Atas">
+                                @error('lokasi') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label for="deskripsi" class="block text-sm font-medium text-gray-700">Deskripsi</label>
+                                <textarea wire:model.defer="deskripsi" id="deskripsi" rows="3" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"></textarea>
+                                @error('deskripsi') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
                         </div>
                     </div>
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
@@ -174,23 +241,87 @@
     </div>
     @endif
 
+
+    {{-- 3. MODAL UNTUK ZOOM GAMBAR --}}
+    <div
+        x-show="isZoomModalOpen"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="isZoomModalOpen = false"
+        @keydown.escape.window="isZoomModalOpen = false"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+        style="display: none;"
+    >
+        <div class="relative p-4">
+            {{-- Tombol Close --}}
+            <button @click="isZoomModalOpen = false" class="absolute -top-2 -right-2 text-white bg-gray-800 rounded-full p-1 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            {{-- Konten Gambar --}}
+            <img 
+                :src="zoomedImageUrl" 
+                alt="Zoomed Product Image" 
+                class="max-w-screen-sm max-h-screen-md object-contain rounded-lg shadow-xl"
+                @click.stop {{-- Mencegah klik pada gambar menutup modal --}}
+            >
+        </div>
+    </div>
     {{-- 4. SCRIPT JAVASCRIPT --}}
     @push('scripts')
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-            @this.on('show-delete-confirmation', (event) => {
-                if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
-                    @this.dispatch('deleteConfirmed');
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        
+        // Definisikan Toast sekali untuk digunakan kembali
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+
+        // Listener untuk menampilkan modal konfirmasi HAPUS
+        // Mendengarkan event dari komponen PHP
+        Livewire.on('show-delete-confirmation', (event) => {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda tidak akan bisa mengembalikan data ini!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Kirim event kembali ke komponen PHP dengan membawa ID
+                    Livewire.dispatch('deleteConfirmed', { id: event.id });
                 }
             });
+        });
 
-            // Opsional: Notifikasi Toast yang lebih canggih
-            @this.on('notify', (event) => {
-                // Di sini Anda bisa integrasikan library toast seperti Toastify.js atau Noty
-                // Contoh sederhana:
-                alert(event.message);
+        // Listener untuk semua notifikasi (Toast)
+        // Mendengarkan event dari komponen PHP
+        Livewire.on('show-notification', (event) => {
+            Toast.fire({
+                icon: event.type || 'success', // Default ke 'success' jika tipe tidak disediakan
+                title: event.message // Mengambil pesan dari event
             });
         });
-    </script>
-    @endpush
+
+    });
+</script>
+@endpush
+
 </div>

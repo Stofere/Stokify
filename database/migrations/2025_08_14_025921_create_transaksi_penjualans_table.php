@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('transaksi_penjualan', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_pengguna')->constrained('pengguna');
-            $table->foreignId('id_pelanggan')->nullable()->constrained('pelanggan');
+            $table->foreignId('id_pengguna')->constrained('pengguna')->restrictOnDelete();
+            $table->foreignId('id_pelanggan')->nullable()->constrained('pelanggan')->nullOnDelete();
+            $table->string('marketing');
             $table->string('kode_transaksi')->unique();
             $table->dateTime('tanggal_transaksi');
             $table->bigInteger('total_harga');

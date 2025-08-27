@@ -19,8 +19,10 @@ return new class extends Migration
             $table->string('satuan');
             $table->bigInteger('harga_jual_standar')->default(0)->nullable();
             $table->integer('stok')->default(0);
+            $table->boolean('lacak_stok')->default(false);
             $table->text('deskripsi')->nullable();
             $table->string('foto')->nullable();
+            $table->string('lokasi')->nullable();
             $table->timestamps();
         });
     }

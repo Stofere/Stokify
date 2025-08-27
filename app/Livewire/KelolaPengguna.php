@@ -1,22 +1,52 @@
 <?php
 namespace App\Livewire;
 
-use App\Models\User;
+use App\Models\User as Pengguna;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 
 class KelolaPengguna extends Component
 {
     use WithPagination;
 
-    public $penggunaId, $nama, $username, $peran, $password;
+    // Properti untuk form
+    public $penggunaId, $nama, $username, $password, $peran;
+    // Properti lainnya
     public $isOpen = false;
+    public $search = '';
+
+    protected function rules()
+    {
+        return [
+            'nama' => 'required|string|min:3',
+            'username' => 'required|string|min:3|unique:pengguna,username,' . $this->penggunaId,
+            'peran' => 'required|in:admin,pegawai',
+            // Password hanya wajib saat membuat user baru
+            'password' => $this->penggunaId ? 'nullable|min:6' : 'required|min:6',
+        ];
+    }
+
+    // Memberi pesan validasi kustom dalam Bahasa Indonesia
+    protected $messages = [
+        'nama.required' => 'Nama wajib diisi.',
+        'username.required' => 'Username wajib diisi.',
+        'username.unique' => 'Username ini sudah digunakan.',
+        'peran.required' => 'Peran wajib dipilih.',
+        'password.required' => 'Password wajib diisi saat membuat pengguna baru.',
+        'password.min' => 'Password minimal 6 karakter.',
+    ];
 
     public function render()
     {
+        $pengguna = Pengguna::where('nama', 'like', '%'.$this->search.'%')
+            ->orWhere('username', 'like', '%'.$this->search.'%')
+            ->latest()
+            ->paginate(10);
+            
         return view('livewire.kelola-pengguna', [
-            'pengguna' => User::latest()->paginate(10)
+            'pengguna' => $pengguna
         ]);
     }
 
@@ -28,73 +58,66 @@ class KelolaPengguna extends Component
 
     public function store()
     {
-        $this->validate([
-            'nama' => 'required|string',
-            'username' => 'required|string|unique:pengguna,username,' . $this->penggunaId,
-            'peran' => 'required|in:admin,pegawai',
-            'password' => $this->penggunaId ? 'nullable|min:8' : 'required|min:8',
-        ]);
+        $validatedData = $this->validate();
 
-        User::updateOrCreate(['id' => $this->penggunaId], [
-            'nama' => $this->nama,
-            'username' => $this->username,
-            'peran' => $this->peran,
-            'password' => $this->password ? Hash::make($this->password) : User::find($this->penggunaId)->password,
-        ]);
+        // Hash password hanya jika diisi (untuk edit atau create)
+        if (!empty($validatedData['password'])) {
+            $validatedData['password'] = Hash::make($validatedData['password']);
+        } else {
+            // Hapus key password dari array jika kosong agar tidak menimpa password lama
+            unset($validatedData['password']);
+        }
 
-        session()->flash('message', 'Data pengguna berhasil disimpan.');
+        Pengguna::updateOrCreate(['id' => $this->penggunaId], $validatedData);
+
+        $message = $this->penggunaId ? 'Pengguna berhasil diperbarui.' : 'Pengguna berhasil ditambahkan.';
+        $this->dispatch('show-toast', ['message' => $message]);
+
         $this->closeModal();
         $this->resetInputFields();
     }
 
-    // ... method openModal, closeModal, edit, delete lainnya (mirip KelolaKategori)
-    public function openModal()
-    {
-        $this->isOpen = true;
-    }
-    public function closeModal()
-    {
-        $this->isOpen = false;
-    }
-    public function resetInputFields()
-    {
-        $this->penggunaId = null;
-        $this->nama = '';
-        $this->username = '';
-        $this->peran = '';
-        $this->password = '';
-    }
     public function edit($id)
     {
-        $pengguna = User::findOrFail($id);
+        $pengguna = Pengguna::findOrFail($id);
         $this->penggunaId = $id;
         $this->nama = $pengguna->nama;
         $this->username = $pengguna->username;
         $this->peran = $pengguna->peran;
-        $this->password = ''; // Kosongkan password saat edit
+        $this->password = ''; // Kosongkan field password saat edit
+
         $this->openModal();
     }
-    public function delete($id)
-    {
-        User::findOrFail($id)->delete();
-        session()->flash('message', 'Pengguna berhasil dihapus.');
-    }
-    public function paginationView()
-    {
-        return 'vendor.livewire.pagination';
-    }
-    public function updated($propertyName)
-    {
-        $this->validateOnly($propertyName, [
-            'nama' => 'required|string',
-            'username' => 'required|string|unique:pengguna,username,' . $this->penggunaId,
-            'peran' => 'required|in:admin,pegawai',
-            'password' => $this->penggunaId ? 'nullable|min:8' : 'required|min:8',
-        ]);
-    }
+    
     public function confirmDelete($id)
     {
-        $this->delete($id);
+        // Jangan biarkan admin menghapus dirinya sendiri
+        if (auth()->id() == $id) {
+            $this->dispatch('show-toast', ['message' => 'Anda tidak bisa menghapus akun Anda sendiri.', 'type' => 'error']);
+            return;
+        }
+        $this->penggunaId = $id;
+        $this->dispatch('show-delete-confirmation');
     }
 
+    #[On('deleteConfirmed')]
+    public function delete()
+    {
+        if ($this->penggunaId) {
+            Pengguna::find($this->penggunaId)->delete();
+            $this->dispatch('show-toast', ['message' => 'Pengguna berhasil dihapus.']);
+        }
+    }
+
+    public function openModal() { $this->isOpen = true; }
+    public function closeModal() { $this->isOpen = false; }
+    private function resetInputFields()
+    {
+        $this->penggunaId = null;
+        $this->nama = '';
+        $this->username = '';
+        $this->password = '';
+        $this->peran = '';
+        $this->resetValidation();
+    }
 }
