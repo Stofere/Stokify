@@ -7,11 +7,11 @@ use App\Livewire\KelolaProduk;
 
 use App\Livewire\BuatTransaksiPenjualan;
 use App\Livewire\RiwayatPenjualan;
+use App\Livewire\LaporanProduk;
 
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB;
-use App\Models\TransaksiPenjualan;
-use App\Models\DetailTransaksiPenjualan;
+use App\Livewire\Pages\Auth\Login;
 
 use App\Http\Controllers\DashboardController;
 
@@ -26,7 +26,15 @@ use App\Http\Controllers\DashboardController;
 |
 */
 
-Route::view('/', 'welcome');
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    // Jika belum login, biarkan Laravel yang merender komponen login.
+    // Kita tidak perlu menunjuk ke view-nya secara manual.
+    // Kita bisa langsung redirect ke route 'login' yang sudah dibuat Breeze.
+    return redirect()->route('login');
+})->name('home');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth'])
@@ -46,6 +54,7 @@ Route::get('/pelanggan', KelolaPelanggan::class)
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/pengguna', KelolaPengguna::class)->name('pengguna');
+    Route::get('/laporan/produk', LaporanProduk::class)->name('laporan.produk');
     // Nanti route lain khusus admin bisa ditaruh di sini
 });
 

@@ -48,6 +48,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 font-semibold">Rp {{ number_format($transaksi->total_harga, 0, ',', '.') }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                         <button wire:click="showDetail({{ $transaksi->id }})" class="text-indigo-600 hover:text-indigo-900">Lihat Detail</button>
+                                        <button wire:click="cetakInvoice({{ $transaksi->id }})" class="text-green-600 ml-4">Cetak</button>
                                     </td>
                                 </tr>
                                 @empty

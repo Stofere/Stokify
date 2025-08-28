@@ -18,6 +18,7 @@
                         <button wire:click="create" class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-600">
                             + Tambah Produk
                         </button>
+                        
                         <div class="w-1/3">
                             <input 
                                 type="text" 
@@ -148,7 +149,7 @@
                             </div>
 
                             <div>
-                                <label for="kode_barang" class="block text-sm font-medium text-gray-700">Kode Barang (SKU) Opsional</label>
+                                <label for="kode_barang" class="block text-sm font-medium text-gray-700">Kode Barang (SKU)</label>
                                 <input type="text" wire:model.defer="kode_barang" id="kode_barang" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                                 @error('kode_barang') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>

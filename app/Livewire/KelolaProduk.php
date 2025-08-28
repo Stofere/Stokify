@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 
 
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProdukExport; 
+use Barryvdh\DomPDF\Facade\Pdf;
+
+
 class KelolaProduk extends Component
 {
     use WithPagination;
@@ -31,7 +36,7 @@ class KelolaProduk extends Component
         return [
             'id_kategori' => 'required|exists:kategori,id',
             'nama_produk' => 'required|string|min:3|unique:produk,nama_produk,' . $this->produkId,
-            'kode_barang' => 'nullable|string|unique:produk,kode_barang,' . $this->produkId,
+            'kode_barang' => 'required|string|unique:produk,kode_barang,' . $this->produkId,
             'harga_jual_standar' => 'required|integer',
             'satuan' => 'required|string',
             'deskripsi' => 'nullable|string',
@@ -56,12 +61,8 @@ class KelolaProduk extends Component
 
     public function render()
     {
-        $produks = Produk::with('kategori')
-            ->when($this->search, fn($q) =>
-                $q->where('nama_produk', 'like', "%{$this->search}%")
-                  ->orWhere('kode_barang', 'like', "%{$this->search}%"))
-            ->latest()
-            ->paginate(10);
+        // Gunakan method helper di sini
+        $produks = $this->getFilteredProduks()->paginate(10);
 
         return view('livewire.kelola-produk', ['produks' => $produks]);
     }
@@ -178,5 +179,17 @@ class KelolaProduk extends Component
         $this->deskripsi = '';
         $this->foto = null;
         $this->foto_lama = null;
+    }
+
+    
+
+    // [4] Method helper untuk query agar tidak duplikasi kode
+    private function getFilteredProduks()
+    {
+        return Produk::with('kategori')
+            ->when($this->search, fn($q) =>
+                $q->where('nama_produk', 'like', "%{$this->search}%")
+                  ->orWhere('kode_barang', 'like', "%{$this->search}%"))
+            ->latest();
     }
 }

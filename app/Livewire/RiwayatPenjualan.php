@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\TransaksiPenjualan;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class RiwayatPenjualan extends Component
 {
@@ -64,5 +65,19 @@ class RiwayatPenjualan extends Component
     {
         $this->isDetailModalOpen = false;
         $this->selectedTransaksi = null;
+    }
+
+    public function cetakInvoice($transaksiId)
+    {
+        $transaksi = TransaksiPenjualan::with('pelanggan', 'detail.produk')->find($transaksiId);
+        if (!$transaksi) return;
+
+        $data = ['transaksi' => $transaksi];
+
+        $pdf = Pdf::loadView('pdf.invoice-penjualan', $data)->setPaper('a4', 'portrait');
+        
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, 'invoice-' . $transaksi->kode_transaksi . '.pdf');
     }
 }

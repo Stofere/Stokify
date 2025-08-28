@@ -124,7 +124,9 @@
                     @forelse($produks as $produk)
                     <div wire:key="prod-{{ $produk->id }}" wire:click="tambahProdukKeKeranjang({{ $produk->id }})" class="bg-white rounded-lg shadow-md p-2 cursor-pointer hover:border-blue-500 border-2 border-transparent transition">
                         <div class="relative">
-                            <img src="{{ $produk->foto ? asset('storage/' . $produk->foto) : 'https://via.placeholder.com/150' }}" alt="{{ $produk->nama_produk }}" class="w-full h-24 object-cover rounded-md">
+                            <img src="{{ $produk->foto ? asset('storage/' . $produk->foto) : 'https://via.placeholder.com/300' }}" 
+                                alt="{{ $produk->nama_produk }}" 
+                                class="h-full w-full object-cover object-center group-hover:opacity-75">
                             <span class="absolute top-1 right-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">{{ $produk->stok }}</span>
 
                             {{-- Indikator Stok --}}

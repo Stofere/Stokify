@@ -28,67 +28,67 @@ new class extends Component
                     </a>
                 </div>
 
-                <!-- Navigation Links -->
+                <!-- Navigation Links (Desktop) -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </x-nav-link>
-
-                    <x-nav-link :href="route('kategori')" :active="request()->routeIs('kategori')" wire:navigate>
-                        {{ __('Kategori') }}
-                    </x-nav-link>
-
-                    <x-nav-link :href="route('pelanggan')" :active="request()->routeIs('pelanggan')">
-                        {{ __('Pelanggan') }}
-                    </x-nav-link>
-
-                    @if (Auth::user()->peran === 'admin')
-                        <x-nav-link :href="route('pengguna')" :active="request()->routeIs('pengguna')">
-                            {{ __('Pengguna') }}
-                        </x-nav-link>
-                    @endif
-
-                    <x-nav-link :href="route('produk')" :active="request()->routeIs('produk')">
-                        {{ __('Produk') }}
-                    </x-nav-link>
-
                     <x-nav-link :href="route('penjualan.buat')" :active="request()->routeIs('penjualan.buat')">
-                        {{ __('Buat Penjualan') }}
+                        {{ __('Kasir (POS)') }}
                     </x-nav-link>
-
                     <x-nav-link :href="route('penjualan.riwayat')" :active="request()->routeIs('penjualan.riwayat')">
                         {{ __('Riwayat Penjualan') }}
                     </x-nav-link>
+                    
+                    {{-- Dropdown Data Master --}}
+                    <div class="hidden sm:flex sm:items-center sm:ms-6">
+                        <x-dropdown align="left" width="48">
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                                    <div>Data Master</div>
+                                    <div class="ms-1"><svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></div>
+                                </button>
+                            </x-slot>
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('produk')">{{ __('Produk') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('kategori')">{{ __('Kategori') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('pelanggan')">{{ __('Pelanggan') }}</x-dropdown-link>
+                                @if (Auth::user()->peran === 'admin')
+                                    <x-dropdown-link :href="route('pengguna')">{{ __('Pengguna') }}</x-dropdown-link>
+                                @endif
+                            </x-slot>
+                        </x-dropdown>
+                    </div>
 
+                    {{-- Dropdown Laporan --}}
+                    <div class="hidden sm:flex sm:items-center sm:ms-6">
+                        <x-dropdown align="left" width="48">
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                                    <div>Laporan</div>
+                                    <div class="ms-1"><svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></div>
+                                </button>
+                            </x-slot>
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('laporan.produk')">{{ __('Laporan Produk') }}</x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+                    </div>
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
+            <!-- Settings Dropdown (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
                             <div x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></div>
-
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
+                            <div class="ms-1"><svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></div>
                         </button>
                     </x-slot>
-
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile')" wire:navigate>
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
-
-                        <!-- Authentication -->
-                        <button wire:click="logout" class="w-full text-start">
-                            <x-dropdown-link>
-                                {{ __('Log Out') }}
-                            </x-dropdown-link>
-                        </button>
+                        <x-dropdown-link :href="route('profile')" wire:navigate>{{ __('Profile') }}</x-dropdown-link>
+                        <button wire:click="logout" class="w-full text-start"><x-dropdown-link>{{ __('Log Out') }}</x-dropdown-link></button>
                     </x-slot>
                 </x-dropdown>
             </div>
@@ -105,27 +105,47 @@ new class extends Component
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
+    <!-- Responsive Navigation Menu (Mobile) -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" wire:navigate>
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('penjualan.buat')" :active="request()->routeIs('penjualan.buat')">
+                {{ __('Kasir (POS)') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('penjualan.riwayat')" :active="request()->routeIs('penjualan.riwayat')">
+                {{ __('Riwayat Penjualan') }}
+            </x-responsive-nav-link>
+            
+            {{-- Tambahkan border pemisah untuk grup menu --}}
+            <div class="border-t border-gray-200"></div>
+
+            <div class="px-4 mt-3 text-xs font-semibold text-gray-400 uppercase">Data Master</div>
+            <x-responsive-nav-link :href="route('produk')" :active="request()->routeIs('produk')">{{ __('Produk') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('kategori')" :active="request()->routeIs('kategori')">{{ __('Kategori') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('pelanggan')" :active="request()->routeIs('pelanggan')">{{ __('Pelanggan') }}</x-responsive-nav-link>
+            @if (Auth::user()->peran === 'admin')
+                <x-responsive-nav-link :href="route('pengguna')" :active="request()->routeIs('pengguna')">{{ __('Pengguna') }}</x-responsive-nav-link>
+            @endif
+            
+            <div class="border-t border-gray-200"></div>
+            
+            <div class="px-4 mt-3 text-xs font-semibold text-gray-400 uppercase">Laporan</div>
+            <x-responsive-nav-link :href="route('laporan.produk')" :active="request()->routeIs('laporan.produk')">{{ __('Laporan Produk') }}</x-responsive-nav-link>
         </div>
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></div>
-                <div class="font-medium text-sm text-gray-500">{{ auth()->user()->email }}</div>
+                {{-- Anda mungkin ingin menyembunyikan email jika tidak relevan --}}
+                {{-- <div class="font-medium text-sm text-gray-500">{{ auth()->user()->email }}</div> --}}
             </div>
-
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile')" wire:navigate>
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
-
-                <!-- Authentication -->
                 <button wire:click="logout" class="w-full text-start">
                     <x-responsive-nav-link>
                         {{ __('Log Out') }}
