@@ -75,19 +75,11 @@
                                         <tr wire:key="keranjang-{{ $index }}">
                                             <td class="px-4 py-2">{{ $item['nama_produk'] }}</td>
                                             <td class="px-4 py-2"><input type="number" step="0.01" wire:model.live.debounce.300ms="keranjang.{{ $index }}.jumlah" class="w-24 border-gray-300 rounded-md shadow-sm"></td>
-                                            <td class="px-4 py-2"><input
-                                                type="number"
-                                                step="1"
-                                                inputmode="numeric"
-                                                wire:model.live="keranjang.{{ $index }}.harga_satuan_deal"
-                                                class="w-40 border-gray-300 rounded-md shadow-sm"
-                                                x-data
-                                                @keydown="
-                                                    if (!['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete'].includes($event.key) && isNaN(Number($event.key))) {
-                                                        $event.preventDefault();
-                                                    }
-                                                "
-                                            >
+                                            <td class="px-4 py-2">
+                                                <input type="number" 
+                                                    step="1" {{-- Hanya izinkan integer untuk harga --}}
+                                                    wire:model.live.debounce.300ms="keranjang.{{ $index }}.harga_satuan_deal"
+                                                    class="w-40 border-gray-300 rounded-md shadow-sm">
                                             </td>
                                             <td class="px-4 py-2">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</td>
                                             <td class="px-4 py-2"><button wire:click="hapusItemDariKeranjang({{ $index }})" class="text-red-500 hover:text-red-700">Hapus</button></td>

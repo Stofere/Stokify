@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Carbon\Carbon;
+use App\Models\Marketing;
 
 class EditTransaksiPenjualan extends Component
 {
@@ -17,21 +18,35 @@ class EditTransaksiPenjualan extends Component
     
     public $tanggal_transaksi;
     public $id_pelanggan;
-    public $marketing;
+    public $id_marketing; 
     public $catatan;
     public $keranjang = [];
     public $totalHarga = 0;
     
     public $semuaPelanggan = [];
+    public $semuaMarketing = []; 
+    
     public $searchProduk = '';
     public $hasilPencarian = [];
 
+
+    protected function rules()
+    {
+        return [
+            'tanggal_transaksi' => 'required|date',
+            'id_pelanggan' => 'nullable|exists:pelanggan,id',
+            'id_marketing' => 'required|exists:marketing,id',
+            'catatan' => 'nullable|string',
+            'keranjang' => 'required|array|min:1',
+        ];
+    }
+    
     public function mount(TransaksiPenjualan $transaksi)
     {
         $this->transaksi = $transaksi->load('detail.produk', 'editor');
         $this->tanggal_transaksi = Carbon::parse($this->transaksi->tanggal_transaksi)->format('Y-m-d');
         $this->id_pelanggan = $this->transaksi->id_pelanggan;
-        $this->marketing = $this->transaksi->marketing;
+        $this->id_marketing = $this->transaksi->id_marketing; 
         $this->catatan = $this->transaksi->catatan;
 
         foreach ($this->transaksi->detail as $item) {
@@ -50,6 +65,9 @@ class EditTransaksiPenjualan extends Component
 
         $this->hitungTotalHarga();
         $this->semuaPelanggan = Pelanggan::orderBy('nama')->get();
+
+        $this->semuaMarketing = Marketing::where('aktif', true)->orderBy('nama')->get();
+
     }
 
     // [SALIN SEMUA METHOD HELPER DARI BuatTransaksiPenjualan.php]
@@ -141,7 +159,8 @@ class EditTransaksiPenjualan extends Component
      */
     public function konfirmasiUpdateTransaksi()
     {
-        // Anda bisa menambahkan validasi di sini jika perlu
+        // Jalankan validasi sebelum menampilkan konfirmasi
+        $this->validate(); 
         $this->dispatch('show-update-confirmation');
     }
 
@@ -186,7 +205,7 @@ class EditTransaksiPenjualan extends Component
             // 3. Update data transaksi utama
             $this->transaksi->update([
                 'id_pelanggan' => $this->id_pelanggan,
-                'marketing' => $this->marketing,
+                'id_marketing' => $this->id_marketing, 
                 'tanggal_transaksi' => $this->tanggal_transaksi,
                 'total_harga' => $this->totalHarga,
                 'catatan' => $this->catatan,
