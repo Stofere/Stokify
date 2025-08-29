@@ -38,4 +38,9 @@ class TransaksiPenjualan extends Model
     {
         return $this->hasMany(DetailTransaksiPenjualan::class, 'id_transaksi_penjualan');
     }
+
+    Public function editor()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'edited_by_id_pengguna');
+    }
 }

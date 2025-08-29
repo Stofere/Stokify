@@ -15,6 +15,7 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
-        "sweetalert2": "^11.22.4"
+        "sweetalert2": "^11.22.4",
+        "tom-select": "^2.4.3"
     }
 }
