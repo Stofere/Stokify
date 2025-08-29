@@ -54,6 +54,8 @@ new class extends Component
                                 <x-dropdown-link :href="route('kategori')">{{ __('Kategori') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('pelanggan')">{{ __('Pelanggan') }}</x-dropdown-link>
                                 @if (Auth::user()->peran === 'admin')
+                                    {{-- TAMBAHKAN LINK MARKETING DI SINI AGAR KONSISTEN --}}
+                                    <x-dropdown-link :href="route('marketing')" :active="request()->routeIs('marketing')">{{ __('Marketing') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('pengguna')">{{ __('Pengguna') }}</x-dropdown-link>
                                 @endif
                             </x-slot>
@@ -127,6 +129,7 @@ new class extends Component
             <x-responsive-nav-link :href="route('pelanggan')" :active="request()->routeIs('pelanggan')">{{ __('Pelanggan') }}</x-responsive-nav-link>
             @if (Auth::user()->peran === 'admin')
                 <x-responsive-nav-link :href="route('pengguna')" :active="request()->routeIs('pengguna')">{{ __('Pengguna') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('marketing')" :active="request()->routeIs('marketing')">{{ __('Marketing') }}</x-responsive-nav-link>
             @endif
             
             <div class="border-t border-gray-200"></div>

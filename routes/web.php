@@ -9,6 +9,7 @@ use App\Livewire\BuatTransaksiPenjualan;
 use App\Livewire\RiwayatPenjualan;
 use App\Livewire\LaporanProduk;
 use App\Livewire\EditTransaksiPenjualan;
+use App\Livewire\KelolaMarketing;
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +58,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/pengguna', KelolaPengguna::class)->name('pengguna');
     Route::get('/laporan/produk', LaporanProduk::class)->name('laporan.produk');
     Route::get('/penjualan/edit/{transaksi}', EditTransaksiPenjualan::class)->name('penjualan.edit');
+    Route::get('/marketing', KelolaMarketing::class)->name('marketing');
     // Nanti route lain khusus admin bisa ditaruh di sini
 });
 

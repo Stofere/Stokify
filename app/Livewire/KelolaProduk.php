@@ -42,7 +42,7 @@ class KelolaProduk extends Component
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|max:1024',
             'lokasi' => 'nullable|string|max:255',
-            'stok' => 'required_if:lacak_stok,true|integer|min:0',
+            'stok' => 'required_if:lacak_stok,true|numeric|min:0',
             'lacak_stok' => 'required|boolean',
         ];
     }
@@ -91,7 +91,7 @@ class KelolaProduk extends Component
             // Logika Cerdas untuk Stok:
             // Jika lacak_stok aktif, simpan nilai $this->stok.
             // Jika tidak aktif, simpan nilai 0 (atau stok sebelumnya jika ada).
-            'stok' => $this->lacak_stok ? $this->stok : 0, 
+            'stok' => $this->lacak_stok ? (float) $this->stok : 0, 
             'lacak_stok' => $this->lacak_stok,
             'deskripsi' => $this->deskripsi,
         ];
@@ -130,7 +130,7 @@ class KelolaProduk extends Component
         $this->satuan = $produk->satuan;
         $this->lokasi = $produk->lokasi;
         $this->lacak_stok = (bool)$produk->lacak_stok;
-        $this->stok = $produk->stok;
+        $this->stok = (float) $produk->stok; 
         $this->deskripsi = $produk->deskripsi;
         $this->foto_lama = $produk->foto; // Simpan path foto lama untuk ditampilkan
         $this->foto = null; // Reset input file

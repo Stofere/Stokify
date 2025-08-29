@@ -43,4 +43,10 @@ class TransaksiPenjualan extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'edited_by_id_pengguna');
     }
+
+    public function marketing()
+    {
+        // Nama relasi 'marketing' akan memanggil model 'Marketing'
+        return $this->belongsTo(Marketing::class, 'id_marketing');
+    }
 }

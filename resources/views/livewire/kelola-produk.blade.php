@@ -78,7 +78,14 @@
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kode_barang ?? '-' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kategori->nama ?? '-' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($produk->harga_jual_standar, 0, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">{{ $produk->stok }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {{-- [FIX] Gunakan helper untuk format yang konsisten --}}
+                                            @if($produk->lacak_stok)
+                                                {{ format_jumlah($produk->stok, $produk->satuan) }}
+                                            @else
+                                                ∞
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             @if($produk->lacak_stok)
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Aktif</span>
@@ -160,37 +167,51 @@
                                 @error('harga_jual_standar') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
 
-                            <div>
-                                <label for="satuan" class="block text-sm font-medium text-gray-700">Satuan</label>
-                                <select wire:model.defer="satuan" id="satuan" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                                    <option value="" disabled selected>Pilih Satuan</option>
-                                    <option value="Unit">Unit</option>
-                                    <option value="pcs">Pcs</option>
-                                    <option value="lusin">Lusin</option>
-                                    <option value="kg">Kg</option>
-                                    <option value="meter">Meter</option>
-                                </select>
-                                @error('satuan') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                            </div>
+                            {{-- 1. Bungkus Satuan, Lacak Stok, dan Stok dengan div x-data --}}
+                            <div x-data="{ 
+                                satuan: @entangle('satuan'),
+                                lacakStok: @entangle('lacak_stok'),
+                                get isDecimalUnit() {
+                                    const decimalUnits = ['kg', 'meter'];
+                                    return decimalUnits.includes(this.satuan.toLowerCase());
+                                }
+                            }">
 
-                            {{-- 1. Bungkus input Stok dan Lacak Stok dengan div x-data --}}
-                            <div x-data="{ lacakStok: @entangle('lacak_stok') }">
+                                {{-- Input Satuan --}}
+                                <div>
+                                    <label for="satuan" class="block text-sm font-medium text-gray-700">Satuan</label>
+                                    {{-- 'x-model' menghubungkan dropdown ini dengan variabel 'satuan' di Alpine --}}
+                                    <select x-model="satuan" id="satuan" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                        <option value="">Pilih Satuan</option>
+                                        <option value="pcs">Pcs</option>
+                                        <option value="unit">Unit</option>
+                                        <option value="lusin">Lusin</option>
+                                        <option value="kg">Kg</option>
+                                        <option value="meter">Meter</option>
+                                    </select>
+                                    @error('satuan') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
 
-                                {{-- 2. Checkbox untuk Lacak Stok --}}
+                                {{-- Checkbox Lacak Stok --}}
                                 <div class="mt-4">
                                     <label for="lacak_stok" class="flex items-center">
-                                        {{-- 'x-model' akan mengubah nilai 'lacakStok' di Alpine secara real-time --}}
                                         <input type="checkbox" x-model="lacakStok" id="lacak_stok" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                                         <span class="ms-2 text-sm text-gray-600">Lacak Stok Produk Ini</span>
                                     </label>
                                     <p class="text-xs text-gray-500 mt-1">Jika diaktifkan, stok akan berkurang otomatis saat terjadi penjualan.</p>
                                 </div>
 
-                                {{-- 3. Input Jumlah Stok (Kondisional) --}}
-                                {{-- 'x-show="lacakStok"' akan menampilkan div ini HANYA JIKA lacakStok == true --}}
+                                {{-- Input Jumlah Stok (Kondisional & Dinamis) --}}
                                 <div x-show="lacakStok" x-transition class="mt-4">
                                     <label for="stok" class="block text-sm font-medium text-gray-700">Jumlah Stok Saat Ini</label>
-                                    <input type="number" wire:model.defer="stok" id="stok" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    {{-- Atribut 'step' sekarang terikat dengan isDecimalUnit --}}
+                                    <input 
+                                        type="number" 
+                                        :step="isDecimalUnit ? '0.01' : '1'" 
+                                        wire:model.defer="stok" 
+                                        id="stok" 
+                                        class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                                    >
                                     @error('stok') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                                 </div>
 

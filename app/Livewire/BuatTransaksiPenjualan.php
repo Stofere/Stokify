@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Pelanggan;
+use App\Models\Marketing;
 use App\Models\Produk;
 use App\Models\Kategori;
 use App\Models\TransaksiPenjualan;
@@ -19,7 +20,8 @@ class BuatTransaksiPenjualan extends Component
     // Properti untuk info transaksi
     public $tanggal_transaksi;
     public $id_pelanggan;
-    public $marketing;
+    public $id_marketing; 
+    public $semuaMarketing = []; 
     public $kode_transaksi_preview;
 
     // Properti baru untuk UI POS
@@ -51,7 +53,7 @@ class BuatTransaksiPenjualan extends Component
         return [
             'tanggal_transaksi' => 'required|date',
             'id_pelanggan' => 'nullable|exists:pelanggan,id',
-            'marketing' => 'required|in:Simeon,Nopal', // <-- [FIX #2] Perbaiki aturan ini
+            'id_marketing' => 'required|exists:marketing,id',
             'keranjang' => 'required|array|min:1',
             'pelangganBaru.nama' => 'required_if:id_pelanggan,null|string|min:3|unique:pelanggan,nama',
         ];
@@ -64,6 +66,8 @@ class BuatTransaksiPenjualan extends Component
 
         $this->kode_transaksi_preview = $this->generateKodeTransaksi();
         $this->semuaKategori = Kategori::orderBy('nama')->get(); // Muat data kategori
+
+        $this->semuaMarketing = Marketing::where('aktif', true)->orderBy('nama')->get();
     }
 
     public function filterByKategori($kategoriId)
@@ -225,7 +229,7 @@ class BuatTransaksiPenjualan extends Component
             $transaksi = TransaksiPenjualan::create([
                 'id_pengguna' => auth()->id(),
                 'id_pelanggan' => $pelangganIdUntukTransaksi, // Gunakan ID yang benar
-                'marketing' => $this->marketing,
+                'id_marketing' => $this->id_marketing,
                 'kode_transaksi' => $this->generateKodeTransaksi(),
                 'tanggal_transaksi' => $this->tanggal_transaksi,
                 'total_harga' => $this->totalHarga,

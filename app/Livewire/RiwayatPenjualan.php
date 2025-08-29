@@ -28,7 +28,7 @@ class RiwayatPenjualan extends Component
 
     public function render()
     {
-        $query = TransaksiPenjualan::with(['pelanggan', 'pengguna'])
+        $query = TransaksiPenjualan::with(['pelanggan', 'pengguna', 'marketing'])
             // Filter berdasarkan rentang tanggal
             ->when($this->startDate, function ($q) {
                 $q->whereDate('tanggal_transaksi', '>=', $this->startDate);

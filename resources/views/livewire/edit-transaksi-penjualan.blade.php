@@ -29,12 +29,14 @@
                         </div>
                         <div>
                             <label for="marketing" class="block text-sm font-medium text-gray-700">Marketing</label>
-                            <select wire:model="marketing" id="marketing" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                            {{-- Ubah wire:model dan perulangan --}}
+                            <select wire:model="id_marketing" id="marketing" class="w-full mt-1 ...">
                                 <option value="">Pilih Marketing</option>
-                                <option value="Simeon">Simeon</option>
-                                <option value="Nopal">Nopal</option>
+                                @foreach($semuaMarketing as $marketing)
+                                    <option value="{{ $marketing->id }}">{{ $marketing->nama }}</option>
+                                @endforeach
                             </select>
-                            @error('marketing') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            @error('id_marketing') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
