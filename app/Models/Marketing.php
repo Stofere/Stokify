@@ -18,4 +18,8 @@ class Marketing extends Model
      * Atribut yang boleh diisi secara massal.
      */
     protected $guarded = ['id'];
+
+    protected $casts = [
+        'aktif' => 'boolean',
+    ];
 }

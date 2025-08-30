@@ -85,9 +85,15 @@
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="btn-primary w-full sm:w-auto">Simpan</button>
-                        <button wire:click="closeModal" type="button" class="btn-secondary mt-3 w-full sm:mt-0 sm:w-auto">Batal</button>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse space-y-2 sm:space-y-0 sm:space-x-3 sm:space-x-reverse">
+                        <button type="submit"
+                            class="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+                            Simpan
+                        </button>
+                        <button type="button" wire:click="closeModal"
+                            class="w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-gray-700 text-sm font-medium hover:bg-gray-100">
+                            Batal
+                        </button>
                     </div>
                 </form>
             </div>

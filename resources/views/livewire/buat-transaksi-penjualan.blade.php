@@ -13,43 +13,42 @@
                 <div>
                     <label for="id_pelanggan" class="block text-sm font-medium text-gray-700">Pelanggan</label>
                     
-                    <div class="flex items-center space-x-2 mt-1">
-                        {{-- Tombol untuk menambah pelanggan baru --}}
+                    {{-- Komponen Alpine.js yang mengelola state UI --}}
+                    <div 
+                        x-data="{ namaBaru: @entangle('namaPelangganBaruSementara') }"
+                        class="flex items-start space-x-2 mt-1"
+                    >
                         <button wire:click.prevent="openModalPelanggan" class="px-3 py-2 bg-gray-200 text-lg font-bold rounded-md hover:bg-gray-300">+</button>
                         
-                        {{-- Tampilkan nama pelanggan baru jika ada, atau dropdown jika tidak --}}
                         <div class="w-full">
-                            @if($namaPelangganBaruSementara)
+                            {{-- Tampilkan nama baru JIKA variabel Alpine 'namaBaru' ada isinya --}}
+                            <template x-if="namaBaru">
                                 <div class="flex items-center justify-between px-3 py-2 bg-blue-100 text-blue-800 rounded-md">
-                                    <span>{{ $namaPelangganBaruSementara }} (Baru)</span>
-                                    {{-- Tombol untuk membatalkan pelanggan baru dan kembali ke dropdown --}}
-                                    <button wire:click.prevent="$set('namaPelangganBaruSementara', '')" class="text-blue-600 hover:text-blue-900 font-bold">×</button>
+                                    <span x-text="namaBaru + ' (Baru)'"></span>
+                                    <button @click="namaBaru = ''" class="text-blue-600 hover:text-blue-900 font-bold">×</button>
                                 </div>
-                            @else
-                                <select wire:model.live="id_pelanggan" id="id_pelanggan" class="w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                                    <option value="">Pilih Pelanggan (Umum)</option>
-                                    @foreach($semuaPelanggan as $pelanggan)
-                                        <option value="{{ $pelanggan->id }}">{{ $pelanggan->nama }}</option>
-                                    @endforeach
-                                </select>
-                            @endif
+                            </template>
+                            
+                            {{-- Tampilkan TomSelect JIKA variabel Alpine 'namaBaru' kosong --}}
+                            <div x-show="!namaBaru" wire:ignore>
+                                <select id="tom-select-pelanggan"></select>
+                            </div>
                         </div>
                     </div>
-
-                    {{-- Tampilkan error di bawah --}}
+                    
                     @error('id_pelanggan') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     @error('pelangganBaru.nama') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-
                 </div>
                 
                 <div>
                     <label for="marketing" class="block text-sm font-medium text-gray-700">Marketing</label>
-                    <select wire:model="marketing" id="marketing" class="w-full mt-1 shadow-sm sm:text-sm border-gray-300 rounded-md">
+                    <select wire:model="id_marketing" id="marketing" class="w-full mt-1 shadow-sm sm:text-sm border-gray-300 rounded-md">
                         <option value="">Pilih Marketing</option>
-                        <option value="Simeon">Simeon</option>
-                        <option value="Nopal">Nopal</option>
+                        @foreach($semuaMarketing as $marketing_item)
+                            <option value="{{ $marketing_item->id }}">{{ $marketing_item->nama }}</option>
+                        @endforeach
                     </select>
-                    @error('marketing') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    @error('id_marketing') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
             </div>
 
@@ -61,6 +60,7 @@
                         <tr class="text-left text-sm text-gray-500">
                             <th class="py-1">Item</th>
                             <th class="py-1 text-center">Qty</th>
+                            <th class="py-1 text-center">Satuan</th>
                             <th class="py-1 text-right">Subtotal</th>
                             <th></th>
                         </tr>
@@ -75,13 +75,16 @@
                             <td class="py-2 text-center">
                                 <input type="number" step="{{ in_array(strtolower($item['satuan']), ['kg', 'meter']) ? '0.01' : '1' }}" wire:model.live.debounce.300ms="keranjang.{{ $index }}.jumlah" class="w-16 text-center form-input rounded-md">
                             </td>
+                            <td class="py-2 text-center">
+                                <span class="text-sm text-gray-500">{{ $item['satuan'] }}</span>
+                            </td>
                             <td class="py-2 text-right font-semibold">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</td>
                             <td class="py-2 text-center">
                                 <button wire:click="hapusItemDariKeranjang({{ $index }})" class="text-red-500 hover:text-red-700">×</button>
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center py-10 text-gray-400">Keranjang kosong</td></tr>
+                        <tr><td colspan="5" class="text-center py-10 text-gray-400">Keranjang kosong</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -93,7 +96,7 @@
                     <span class="text-gray-600">Total</span>
                     <span class="text-2xl font-bold">Rp {{ number_format($totalHarga, 0, ',', '.') }}</span>
                 </div>
-                <button wire:click="konfirmasiSimpanTransaksi" class="w-full py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 disabled:opacity-50" @if(empty($keranjang) || empty($marketing)) disabled @endif>
+                <button wire:click="konfirmasiSimpanTransaksi" class="w-full py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 disabled:opacity-50" @if(empty($keranjang) || empty($id_marketing)) disabled @endif>
                     Simpan Transaksi
                 </button>
             </div>
@@ -124,15 +127,16 @@
                     @forelse($produks as $produk)
                     <div wire:key="prod-{{ $produk->id }}" wire:click="tambahProdukKeKeranjang({{ $produk->id }})" class="bg-white rounded-lg shadow-md p-2 cursor-pointer hover:border-blue-500 border-2 border-transparent transition">
                         <div class="relative">
-                            <img src="{{ $produk->foto ? asset('storage/' . $produk->foto) : 'https://via.placeholder.com/300' }}" 
-                                alt="{{ $produk->nama_produk }}" 
-                                class="h-full w-full object-cover object-center group-hover:opacity-75">
-                            <span class="absolute top-1 right-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">{{ $produk->stok }}</span>
+                            <div class="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-md bg-gray-200">
+                                <img src="{{ $produk->foto ? asset('storage/' . $produk->foto) : asset('images/tidak-ada-gambar-tersedia.png') }}" 
+                                    alt="{{ $produk->nama_produk }}" 
+                                    class="h-full w-full object-cover object-center group-hover:opacity-75">
+                            </div>
+                            
 
                             {{-- Indikator Stok --}}
                             <span class="absolute top-1 right-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-                                {{-- Tampilkan '∞' jika stok tidak dilacak --}}
-                                {{ $produk->lacak_stok ? $produk->stok : '∞' }}
+                                {{ $produk->lacak_stok ? format_jumlah($produk->stok, $produk->satuan) : '∞' }}
                             </span>
                         </div>
 
@@ -196,6 +200,34 @@
     @push('scripts')
     <script>
         document.addEventListener('livewire:initialized', () => {
+            // Simpan instance TomSelect di luar agar bisa diakses
+            let tomSelectPelanggan = null;
+
+            // Fungsi untuk menginisialisasi atau me-refresh TomSelect
+            function initTomSelect(options, selectedValue) {
+                if (tomSelectPelanggan) {
+                    tomSelectPelanggan.destroy(); // Hancurkan instance lama
+                }
+                tomSelectPelanggan = new TomSelect('#tom-select-pelanggan', {
+                    options: options,
+                    items: [selectedValue],
+                    placeholder: 'Ketik untuk mencari pelanggan...',
+                    allowEmptyOption: true,
+                    plugins: ['clear_button'],
+                    
+                    onChange: (value) => {
+                        @this.set('id_pelanggan', value);
+                    }
+                });
+            }
+
+            // Inisialisasi pertama kali saat halaman dimuat
+            initTomSelect(@js($semuaPelangganOptions), @js($id_pelanggan));
+
+            // Listener untuk me-refresh data setelah pelanggan baru ditambahkan dari modal
+            Livewire.on('pelanggan-list-updated', (event) => {
+                initTomSelect(event.options, @this.get('id_pelanggan'));
+            });
             
             // Listener untuk menampilkan notifikasi TOAST
             Livewire.on('show-notification', (event) => {

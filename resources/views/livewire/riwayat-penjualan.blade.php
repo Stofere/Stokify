@@ -44,7 +44,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">{{ $transaksi->kode_transaksi }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->isoFormat('dddd, D MMMM YYYY') }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">{{ $transaksi->pelanggan->nama ?? 'Umum' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $transaksi->marketing->nama ?? 'N/A' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $transaksi->marketing->nama ?? '-' }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 font-semibold">Rp {{ number_format($transaksi->total_harga, 0, ',', '.') }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                         <button wire:click="showDetail({{ $transaksi->id }})" class="text-indigo-600 hover:text-indigo-900">Lihat Detail</button>
@@ -82,7 +82,7 @@
                             <div class="mt-4 text-sm text-gray-600 space-y-2">
                                 <p><strong>Pelanggan:</strong> {{ $selectedTransaksi->pelanggan->nama ?? 'Umum' }}</p>
                                 <p><strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($selectedTransaksi->tanggal_transaksi)->isoFormat('dddd, D MMMM YYYY') }}</p>
-                                <p><strong>Marketing:</strong> {{ $selectedTransaksi->marketing }}</p>
+                                <p><strong>Marketing:</strong> {{ $selectedTransaksi->marketing->nama }}</p>
                             </div>
                             <div class="mt-4 border-t pt-4">
                                 <h4 class="font-semibold mb-2">Item yang Dibeli:</h4>

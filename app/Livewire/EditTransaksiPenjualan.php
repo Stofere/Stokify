@@ -3,19 +3,25 @@
 namespace App\Livewire;
 
 use App\Models\Pelanggan;
+use App\Models\Marketing;
 use App\Models\Produk;
+use App\Models\Kategori;
 use App\Models\TransaksiPenjualan;
 use App\Models\DetailTransaksiPenjualan;
+
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Livewire\Attributes\On;
 use Carbon\Carbon;
-use App\Models\Marketing;
 
 class EditTransaksiPenjualan extends Component
 {
+    use WithPagination;
+
     public TransaksiPenjualan $transaksi;
     
+    // Properti Form
     public $tanggal_transaksi;
     public $id_pelanggan;
     public $id_marketing; 
@@ -23,12 +29,14 @@ class EditTransaksiPenjualan extends Component
     public $keranjang = [];
     public $totalHarga = 0;
     
-    public $semuaPelanggan = [];
-    public $semuaMarketing = []; 
+    // Data Master
+    public $semuaMarketing = [];
+    public $semuaPelangganOptions = []; // untuk Tom Select 
     
+    // UI POS
+    public $semuaKategori = [];
+    public $kategoriAktif = null;
     public $searchProduk = '';
-    public $hasilPencarian = [];
-
 
     protected function rules()
     {
@@ -44,6 +52,8 @@ class EditTransaksiPenjualan extends Component
     public function mount(TransaksiPenjualan $transaksi)
     {
         $this->transaksi = $transaksi->load('detail.produk', 'editor');
+
+        // isi properti dari data yang ada
         $this->tanggal_transaksi = Carbon::parse($this->transaksi->tanggal_transaksi)->format('Y-m-d');
         $this->id_pelanggan = $this->transaksi->id_pelanggan;
         $this->id_marketing = $this->transaksi->id_marketing; 
@@ -59,16 +69,24 @@ class EditTransaksiPenjualan extends Component
                 'subtotal' => (int) $item->subtotal,
                 'lacak_stok' => $item->produk->lacak_stok ?? false,
                 'stok_tersedia' => $item->produk->stok ?? 0,
-                'jumlah_lama' => (float) $item->jumlah,
             ];
         }
 
         $this->hitungTotalHarga();
-        $this->semuaPelanggan = Pelanggan::orderBy('nama')->get();
 
         $this->semuaMarketing = Marketing::where('aktif', true)->orderBy('nama')->get();
-
+        $this->semuaKategori = Kategori::orderBy('nama')->get();
     }
+
+    private function getPelangganOptions()
+    {
+        return Pelanggan::orderBy('nama')
+            ->get()
+            ->map(fn($pelanggan) => ['value' => $pelanggan->id, 'text' => $pelanggan->nama])
+            ->values()
+            ->all();
+    }
+    
 
     // [SALIN SEMUA METHOD HELPER DARI BuatTransaksiPenjualan.php]
     public function tambahProdukKeKeranjang($produkId)
@@ -202,7 +220,6 @@ class EditTransaksiPenjualan extends Component
                 );
             }
 
-            // 3. Update data transaksi utama
             $this->transaksi->update([
                 'id_pelanggan' => $this->id_pelanggan,
                 'id_marketing' => $this->id_marketing, 
@@ -218,13 +235,32 @@ class EditTransaksiPenjualan extends Component
         return redirect()->route('penjualan.riwayat');
     }
 
+    public function filterByKategori($kategoriId)
+    {
+        $this->kategoriAktif = $kategoriId;
+        $this->resetPage(); // Reset paginasi ke halaman 1 saat filter diubah
+    }
+
     public function render()
     {
-        if (strlen($this->searchProduk) > 2) {
-            $this->hasilPencarian = Produk::where('nama_produk', 'like', "%{$this->searchProduk}%")->take(5)->get();
-        } else {
-            $this->hasilPencarian = [];
-        }
-        return view('livewire.edit-transaksi-penjualan');
+        // Query produk yang akan ditampilkan di grid kanan
+        $produks = Produk::query()
+            ->when($this->searchProduk, function ($query) {
+                $query->where('nama_produk', 'like', '%' . $this->searchProduk . '%')
+                      ->orWhere('kode_barang', 'like', '%' . $this->searchProduk . '%');
+            })
+            ->when($this->kategoriAktif, function ($query) {
+                $query->where('id_kategori', $this->kategoriAktif);
+            })
+            ->orderBy('nama_produk')
+            ->paginate(12); // Tampilkan 12 produk per halaman (bisa disesuaikan)
+            
+        // Format options pelanggan setiap kali render
+        $this->semuaPelangganOptions = $this->getPelangganOptions();
+
+        return view('livewire.edit-transaksi-penjualan', [
+            'produks' => $produks
+        ]);
     }
+
 }

@@ -13,6 +13,7 @@ use Livewire\Component;
 use Livewire\WithPagination; 
 use Livewire\Attributes\On;
 
+
 class BuatTransaksiPenjualan extends Component
 {
     use WithPagination;
@@ -21,8 +22,9 @@ class BuatTransaksiPenjualan extends Component
     public $tanggal_transaksi;
     public $id_pelanggan;
     public $id_marketing; 
-    public $semuaMarketing = []; 
+    
     public $kode_transaksi_preview;
+    public $catatan;
 
     // Properti baru untuk UI POS
     public $semuaKategori = [];
@@ -35,6 +37,8 @@ class BuatTransaksiPenjualan extends Component
     
     // Data master
     public $semuaPelanggan = [];
+    public $semuaPelangganOptions = []; // Properti baru untuk menampung format options
+    public $semuaMarketing = []; 
     
     // Properti untuk modal & pelanggan baru
     public $isModalPelangganOpen = false;
@@ -62,10 +66,9 @@ class BuatTransaksiPenjualan extends Component
     public function mount()
     {
         $this->tanggal_transaksi = now()->format('Y-m-d');
-        $this->semuaPelanggan = Pelanggan::orderBy('nama')->get();
 
         $this->kode_transaksi_preview = $this->generateKodeTransaksi();
-        $this->semuaKategori = Kategori::orderBy('nama')->get(); // Muat data kategori
+        $this->semuaKategori = Kategori::orderBy('nama')->get(); 
 
         $this->semuaMarketing = Marketing::where('aktif', true)->orderBy('nama')->get();
     }
@@ -173,6 +176,15 @@ class BuatTransaksiPenjualan extends Component
         $this->isModalPelangganOpen = false;
     }
 
+    // Listener untuk menangkap event dari modal pelanggan
+    #[On('pelangganBaruDitambahkan')]
+    public function pelangganBaruDitambahkan($pelangganId)
+    {
+        // Method ini tidak lagi perlu dispatch event, cukup set ID-nya
+        $this->id_pelanggan = $pelangganId;
+    }
+
+
     // Dipanggil saat form modal di-submit
     public function simpanPelangganSementara()
     {
@@ -228,11 +240,12 @@ class BuatTransaksiPenjualan extends Component
             // 1. Buat record transaksi utama
             $transaksi = TransaksiPenjualan::create([
                 'id_pengguna' => auth()->id(),
-                'id_pelanggan' => $pelangganIdUntukTransaksi, // Gunakan ID yang benar
+                'id_pelanggan' => $pelangganIdUntukTransaksi, 
                 'id_marketing' => $this->id_marketing,
                 'kode_transaksi' => $this->generateKodeTransaksi(),
                 'tanggal_transaksi' => $this->tanggal_transaksi,
                 'total_harga' => $this->totalHarga,
+                'catatan' => $this->catatan,
             ]);
             // 2. Loop melalui keranjang dan simpan setiap item
             foreach ($this->keranjang as $item) {
@@ -296,6 +309,15 @@ class BuatTransaksiPenjualan extends Component
             ->orderBy('nama_produk')
             ->paginate(12); // Tampilkan 12 produk per halaman (bisa disesuaikan)
 
+        // [SOLUSI] SIAPKAN DATA OPTIONS DI SINI SETIAP KALI RENDER
+        // Ini memastikan TomSelect selalu mendapatkan data terbaru
+        $this->semuaPelangganOptions = Pelanggan::orderBy('nama')
+            ->get()
+            ->map(fn($pelanggan) => ['value' => $pelanggan->id, 'text' => $pelanggan->nama])
+            ->values()
+            ->all();
+
+        // Kirim semua data yang dibutuhkan oleh view
         return view('livewire.buat-transaksi-penjualan', [
             'produks' => $produks
         ]);

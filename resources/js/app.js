@@ -1,6 +1,9 @@
 // resources/js/app.js
 import "./bootstrap";
 
+import TomSelect from "tom-select";
+window.TomSelect = TomSelect;
+
 import Swal from "sweetalert2";
 window.Swal = Swal;
 
