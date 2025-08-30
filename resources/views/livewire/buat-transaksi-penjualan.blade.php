@@ -8,8 +8,22 @@
      <div class="flex-grow flex overflow-hidden">
         {{-- Kolom Kiri: Keranjang & Info Pelanggan --}}
         <div class="w-1/3 bg-white p-4 flex flex-col border-r">
+
+            {{-- [BARU] PREVIEW KODE INVOICE --}}
+            <div class="border-b pb-4 mb-4">
+                <label class="block text-sm font-medium text-gray-500">Kode Nota (Preview)</label>
+                <p class="text-xl font-bold font-mono text-gray-800">{{ $this->kodeTransaksiPreview }}</p>
+            </div>
+
             {{-- Info Pelanggan & Marketing --}}
             <div class="space-y-4 mb-4">
+                {{-- [MODIFIKASI] INPUT TANGGAL --}}
+                <div>
+                    <label for="tanggal_transaksi" class="block text-sm font-medium text-gray-700">Tanggal & Waktu Transaksi</label>
+                    <input type="datetime-local" wire:model.live="tanggal_transaksi" id="tanggal_transaksi" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                    @error('tanggal_transaksi') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
+                
                 <div>
                     <label for="id_pelanggan" class="block text-sm font-medium text-gray-700">Pelanggan</label>
                     

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination; 
 use Livewire\Attributes\On;
+use Carbon\Carbon;
+use Livewire\Attributes\Computed;
 
 
 class BuatTransaksiPenjualan extends Component
@@ -23,7 +25,7 @@ class BuatTransaksiPenjualan extends Component
     public $id_pelanggan;
     public $id_marketing; 
     
-    public $kode_transaksi_preview;
+    
     public $catatan;
 
     // Properti baru untuk UI POS
@@ -55,7 +57,7 @@ class BuatTransaksiPenjualan extends Component
     protected function rules() 
     {
         return [
-            'tanggal_transaksi' => 'required|date',
+            'tanggal_transaksi' => 'required|date_format:Y-m-d\TH:i',
             'id_pelanggan' => 'nullable|exists:pelanggan,id',
             'id_marketing' => 'required|exists:marketing,id',
             'keranjang' => 'required|array|min:1',
@@ -65,12 +67,43 @@ class BuatTransaksiPenjualan extends Component
 
     public function mount()
     {
-        $this->tanggal_transaksi = now()->format('Y-m-d');
+        // Set nilai awal dengan format yang cocok untuk input datetime-local
+        $this->tanggal_transaksi = now()->format('Y-m-d\TH:i');
 
-        $this->kode_transaksi_preview = $this->generateKodeTransaksi();
+        // Panggil generate kode dengan tanggal saat ini`
+        $this->tanggal_transaksi = now()->format('Y-m-d\TH:i');
         $this->semuaKategori = Kategori::orderBy('nama')->get(); 
 
         $this->semuaMarketing = Marketing::where('aktif', true)->orderBy('nama')->get();
+    }
+
+    // [2] BUAT COMPUTED PROPERTY UNTUK KODE TRANSAKSI
+    // Properti ini akan dihitung ulang secara otomatis setiap kali
+    // properti lain yang digunakannya ($this->tanggal_transaksi) berubah.
+    #[Computed]
+    public function kodeTransaksiPreview()
+    {
+        // Pastikan tanggal_transaksi tidak kosong
+        if (empty($this->tanggal_transaksi)) {
+            return 'INV-XXXX-XXXX';
+        }
+
+        try {
+            $tanggal = Carbon::parse($this->tanggal_transaksi);
+            $datePart = $tanggal->format('Ymd');
+            $prefix = 'INV-';
+            
+            // Hitung jumlah transaksi PADA TANGGAL YANG DIPILIH
+            $countPadaTanggal = TransaksiPenjualan::whereDate('tanggal_transaksi', $tanggal->toDateString())->count();
+            $sequence = $countPadaTanggal + 1;
+            
+            $paddedSequence = str_pad($sequence, 4, '0', STR_PAD_LEFT);
+
+            return $prefix . $datePart . '-' . $paddedSequence;
+        } catch (\Exception $e) {
+            // Tangani jika format tanggal tidak valid untuk sementara
+            return 'Format tanggal salah...';
+        }
     }
 
     public function filterByKategori($kategoriId)
@@ -242,7 +275,7 @@ class BuatTransaksiPenjualan extends Component
                 'id_pengguna' => auth()->id(),
                 'id_pelanggan' => $pelangganIdUntukTransaksi, 
                 'id_marketing' => $this->id_marketing,
-                'kode_transaksi' => $this->generateKodeTransaksi(),
+                'kode_transaksi' => $this->kodeTransaksiPreview,
                 'tanggal_transaksi' => $this->tanggal_transaksi,
                 'total_harga' => $this->totalHarga,
                 'catatan' => $this->catatan,
@@ -275,25 +308,7 @@ class BuatTransaksiPenjualan extends Component
         return redirect()->route('penjualan.riwayat'); 
     }
 
-    private function generateKodeTransaksi()
-    {
-        // 1. Ambil tanggal hari ini dalam format YYYYMMDD
-        $datePart = now()->format('Ymd');
-        $prefix = 'INV-';
-
-        // 2. Hitung jumlah transaksi yang sudah ada HARI INI
-        // Kita gunakan created_at karena lebih akurat daripada tanggal_transaksi yang bisa diubah
-        $todayCount = TransaksiPenjualan::whereDate('created_at', today())->count();
-
-        // 3. Tentukan nomor urut berikutnya
-        $sequence = $todayCount + 1;
-
-        // 4. Format nomor urut menjadi 4 digit dengan angka 0 di depan (e.g., 0001, 0012)
-        $paddedSequence = str_pad($sequence, 4, '0', STR_PAD_LEFT);
-
-        // 5. Gabungkan semuanya
-        return $prefix . $datePart . '-' . $paddedSequence;
-    }
+    
     
     public function render()
     {
