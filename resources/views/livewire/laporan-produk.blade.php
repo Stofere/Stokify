@@ -54,6 +54,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Produk</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Stok</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Satuan</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lokasi</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga Jual</th>
                                 </tr>
@@ -67,7 +68,7 @@
                                     {{-- Jika filter "Semua Kategori" aktif, tampilkan header grup --}}
                                     @if(empty($filterKategori) && $produk->kategori->nama !== $currentKategori)
                                         <tr class="bg-gray-100 font-bold">
-                                            <td colspan="7" class="px-6 py-2 text-gray-700">{{ $produk->kategori->nama }}</td>
+                                            <td colspan="8" class="px-6 py-2 text-gray-700">{{ $produk->kategori->nama }}</td>
                                         </tr>
                                         @php
                                             $currentKategori = $produk->kategori->nama;
@@ -79,13 +80,21 @@
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kode_barang ?? '-' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ $produk->nama_produk }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produk->kategori->nama ?? 'N/A' }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">{{ $produk->lacak_stok ? $produk->stok : '∞' }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            {{-- [FIX] Gunakan helper untuk format yang konsisten --}}
+                                            @if($produk->lacak_stok)
+                                                {{ format_jumlah($produk->stok, $produk->satuan) }}
+                                            @else
+                                                ∞
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">{{ $produk->satuan }} </td>
                                         <td class="px-6 py-4 whitespace-nowrap">{{ $produk->lokasi ?? '-' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right font-semibold">Rp {{ number_format($produk->harga_jual_standar, 0, ',', '.') }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
                                             Tidak ada produk yang cocok dengan filter yang dipilih.
                                         </td>
                                     </tr>

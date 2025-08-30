@@ -1,0 +1,47 @@
+[33mcommit 2d82f1a1723b9d1b9c27c16cdf60f1c6ef4f2221[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Sat Aug 30 14:46:04 2025 +0700
+
+    feat: tanggal di POS
+
+[33mcommit 69683f9cb6f1836c8c288d04c225d65d4675849d[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Sat Aug 30 12:12:01 2025 +0700
+
+    fixing: Edit Transaksi Penjualan, adding tom select for input type text select on POS
+
+[33mcommit 14ed916fdbfd5d3247d859ff50c36b11f2c94d6f[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Fri Aug 29 17:37:53 2025 +0700
+
+    fixing marketing
+
+[33mcommit 3cec9c8ad0fc8a4d11778ff09f513f72f662e6dc[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Fri Aug 29 17:18:11 2025 +0700
+
+    fix: input stok bisa decimal. feat: CRUD Marketing, rombak yang lama
+
+[33mcommit 9757947e5542be8851a878de9eb83673f4fd62a6[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Fri Aug 29 09:53:05 2025 +0700
+
+    feat: edit on riwayatpenjualan
+
+[33mcommit 00c84b78bb2b5e7a2ff0345c5b88813fc75c39a6[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Thu Aug 28 07:45:17 2025 +0700
+
+    feat: Laporan Produk Katalog include export PDF n Excel
+
+[33mcommit 8057497374146cff82477c5b9ec6a46e50d36e39[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Wed Aug 27 14:54:24 2025 +0700
+
+    Menyelesaikan implementasi CRUD untuk kategori, pelanggan, dan produk. Menambahkan fitur penjualan produk integrasi stok, beserta riwayat penjualannya.
+
+[33mcommit 0e7954ca728e0de64ee78a9f2cd613e2c730c2cb[m
+Author: Roger Jeremy <rogerjeremy03@gmail.com>
+Date:   Thu Aug 14 20:42:58 2025 +0700
+
+    Initial commit 2
