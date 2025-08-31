@@ -53,6 +53,11 @@ class BuatTransaksiPenjualan extends Component
     // Properti untuk menampilkan nama pelanggan baru di UI setelah ditambahkan
     public $namaPelangganBaruSementara = '';
 
+    // Properti untuk menampung pilihan status dari form
+    public $status_penjualan = 'pesanan';
+    public $status_pembayaran = 'belum_lunas';
+    public $status_pengiriman = 'belum_terkirim';
+
     // Aturan validasi
     protected function rules() 
     {
@@ -279,6 +284,10 @@ class BuatTransaksiPenjualan extends Component
                 'tanggal_transaksi' => $this->tanggal_transaksi,
                 'total_harga' => $this->totalHarga,
                 'catatan' => $this->catatan,
+                'status_penjualan' => $this->status_penjualan,
+                'status_pembayaran' => $this->status_pembayaran,
+                'status_pengiriman' => $this->status_pengiriman,
+
             ]);
             // 2. Loop melalui keranjang dan simpan setiap item
             foreach ($this->keranjang as $item) {
@@ -294,12 +303,13 @@ class BuatTransaksiPenjualan extends Component
                 // === LOGIKA PENGURANGAN STOK ===
                 $produk = Produk::find($item['id_produk']);
 
-                // 3. Hanya kurangi stok JIKA produk ditemukan DAN lacak_stok-nya true
-                if ($produk && $produk->lacak_stok) {
-                    $stokBaru = $produk->stok - $item['jumlah'];
-                    $produk->update(['stok' => $stokBaru]);
+                // 3. Hanya kurangi stok jika statusnya BUKAN 'draft'
+                if ($this->status_penjualan !== 'draft') {
+                    $produk = Produk::find($item['id_produk']);
+                    if ($produk && $produk->lacak_stok) {
+                        $produk->decrement('stok', $item['jumlah']);
+                    }
                 }
-
             }
         });
         $this->dispatch('show-notification', message: 'Transaksi berhasil disimpan.', type: 'success');

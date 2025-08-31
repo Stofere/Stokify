@@ -9,12 +9,11 @@
 
         {{-- KOLOM KIRI: INFO & KERANJANG --}}
         <div class="w-1/3 bg-white p-6 flex flex-col border-r overflow-y-auto">
-            
             <div class="space-y-4 mb-6">
                 {{-- Tanggal --}}
                 <div>
                     <label for="tanggal_transaksi" class="block text-sm font-medium text-gray-700">Tanggal Transaksi</label>
-                    <input type="date" wire:model="tanggal_transaksi" id="tanggal_transaksi" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                    <input type="datetime-local" wire:model="tanggal_transaksi" id="tanggal_transaksi" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                     @error('tanggal_transaksi') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
                 {{-- Pelanggan (disederhanakan) --}}
@@ -35,6 +34,32 @@
                         @endforeach
                     </select>
                     @error('id_marketing') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
+            </div>
+            
+            {{-- STATUS TRANSAKSI --}}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 border-y py-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Status Nota</label>
+                    <select wire:model="status_penjualan" class="mt-1 block w-full form-select rounded-md">
+                        <option value="draft">Draft</option>
+                        <option value="pesanan">Pesanan</option>
+                        <option value="dibatalkan">Dibatalkan</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Pembayaran</label>
+                    <select wire:model="status_pembayaran" class="mt-1 block w-full form-select rounded-md">
+                        <option value="belum_lunas">Belum Lunas</option>
+                        <option value="lunas">Lunas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Pengiriman</label>
+                    <select wire:model="status_pengiriman" class="mt-1 block w-full form-select rounded-md">
+                        <option value="belum_terkirim">Belum Terkirim</option>
+                        <option value="terkirim">Terkirim</option>
+                    </select>
                 </div>
             </div>
 
@@ -83,7 +108,10 @@
                     Total: <span class="text-blue-600">Rp {{ number_format($totalHarga, 0, ',', '.') }}</span>
                 </div>
                 <div class="flex justify-end items-center space-x-3">
-                    <a href="{{ route('penjualan.riwayat') }}" wire:navigate class="px-6 py-3 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50">Batal</a>
+                    <button wire:click.prevent="konfirmasiBatalDariEdit" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
+                        Batalkan Transaksi
+                    </button>
+                    <a href="{{ route('penjualan.riwayat') }}" wire:navigate class="px-6 py-3 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50">Kembali</a>
                     <button wire:click="konfirmasiUpdateTransaksi" class="px-6 py-3 bg-yellow-500 text-white font-semibold rounded-md hover:bg-yellow-600 disabled:opacity-50" @if(empty($keranjang)) disabled @endif>Update Transaksi</button>
                 </div>
             </div>
@@ -209,6 +237,21 @@
             });
         });
         
+        Livewire.on('show-cancel-confirmation-from-edit', (event) => {
+            Swal.fire({
+                title: 'Batalkan Transaksi Ini?',
+                text: "Stok akan dikembalikan ke sistem. Aksi ini tidak bisa diurungkan.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Ya, Batalkan!',
+                cancelButtonText: 'Tidak'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Livewire.dispatch('cancelConfirmedFromEdit');
+                }
+            });
+        });
     });
 </script>
 @endpush

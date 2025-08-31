@@ -1,7 +1,7 @@
 <div>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Riwayat Transaksi Penjualan') }}
+            {{ __('Daftar Nota Penjualan') }}
         </h2>
     </x-slot>
 
@@ -10,22 +10,51 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
 
-                    {{-- BAGIAN 1: FILTER & PENCARIAN --}}
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    {{-- BAGIAN 1: TAB NAVIGASI --}}
+                    <div class="border-b border-gray-200 mb-6">
+                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                            <button wire:click="gantiTab('proses')" 
+                                    class="{{ $tabAktif == 'proses' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                Butuh Proses
+                            </button>
+                            <button wire:click="gantiTab('selesai')" 
+                                    class="{{ $tabAktif == 'selesai' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                Selesai
+                            </button>
+                             <button wire:click="gantiTab('dibatalkan')" 
+                                    class="{{ $tabAktif == 'dibatalkan' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                Dibatalkan
+                            </button>
+                        </nav>
+                    </div>
+
+                    {{-- BAGIAN 2: FILTER & PENCARIAN --}}
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" x-data="{ filterPeriode: @entangle('filterPeriode') }">
                         <div class="md:col-span-2">
                              <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari Kode Nota / Nama Pelanggan..." class="w-full form-input rounded-md shadow-sm border-gray-300">
                         </div>
-                        <div>
-                            <label for="startDate" class="text-sm text-gray-500">Dari Tanggal</label>
-                            <input type="date" id="startDate" wire:model.live="startDate" class="w-full form-input rounded-md shadow-sm border-gray-300">
-                        </div>
-                        <div>
-                            <label for="endDate" class="text-sm text-gray-500">Sampai Tanggal</label>
-                            <input type="date" id="endDate" wire:model.live="endDate" class="w-full form-input rounded-md shadow-sm border-gray-300">
+                        <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-1">
+                                <select wire:change="setFilterPeriode($event.target.value)" x-model="filterPeriode" class="w-full form-select rounded-md shadow-sm border-gray-300">
+                                    <option value="hari_ini">Hari Ini</option>
+                                    <option value="kemarin">Kemarin</option>
+                                    <option value="7_hari">7 Hari Terakhir</option>
+                                    <option value="bulan_ini">Bulan Ini</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2 grid grid-cols-2 gap-4" x-show="filterPeriode === 'custom'">
+                                <div>
+                                    <input type="date" wire:model.live="startDate" class="w-full form-input rounded-md shadow-sm border-gray-300">
+                                </div>
+                                <div>
+                                    <input type="date" wire:model.live="endDate" class="w-full form-input rounded-md shadow-sm border-gray-300">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {{-- BAGIAN 2: TABEL RIWAYAT --}}
+                    {{-- BAGIAN 3: TABEL RIWAYAT DENGAN STATUS --}}
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -34,6 +63,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marketing</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Harga</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
@@ -45,17 +75,29 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->isoFormat('dddd, D MMMM YYYY') }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">{{ $transaksi->pelanggan->nama ?? 'Umum' }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $transaksi->marketing->nama ?? '-' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex flex-col space-y-1 text-xs capitalize">
+                                            <span class="px-2 py-1 font-semibold rounded-full {{ $transaksi->status_penjualan == 'draft' ? 'bg-gray-100 text-gray-800' : ($transaksi->status_penjualan == 'dibatalkan' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800') }}">{{ $transaksi->status_penjualan }}</span>
+                                            <span class="px-2 py-1 font-semibold rounded-full {{ $transaksi->status_pembayaran == 'lunas' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">{{ str_replace('_', ' ', $transaksi->status_pembayaran) }}</span>
+                                            <span class="px-2 py-1 font-semibold rounded-full {{ $transaksi->status_pengiriman == 'terkirim' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800' }}">{{ str_replace('_', ' ', $transaksi->status_pengiriman) }}</span>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 font-semibold">Rp {{ number_format($transaksi->total_harga, 0, ',', '.') }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                        <button wire:click="showDetail({{ $transaksi->id }})" class="text-indigo-600 hover:text-indigo-900">Lihat Detail</button>
-                                        @if(auth()->user()->peran === 'admin')
-                                            <a href="{{ route('penjualan.edit', $transaksi->id) }}" wire:navigate class="text-yellow-600 hover:text-yellow-900 ml-4">Edit</a>
-                                        @endif
-                                        <button wire:click="cetakInvoice({{ $transaksi->id }})" class="text-green-600 ml-4">Cetak</button>
+                                        <div class="flex justify-center space-x-4">
+                                            <button wire:click="showDetail({{ $transaksi->id }})" class="text-gray-500 hover:text-indigo-600">Detail</button>
+                                            @if(auth()->user()->peran === 'admin')
+                                                @if($transaksi->status_penjualan !== 'dibatalkan')
+                                                    <a href="{{ route('penjualan.edit', $transaksi->id) }}" wire:navigate class="text-gray-500 hover:text-yellow-600">Edit</a>
+                                                    <button wire:click="konfirmasiBatal({{ $transaksi->id }})" class="text-gray-500 hover:text-red-600">Batal</button>
+                                                @endif
+                                            @endif
+                                            <button wire:click="cetakInvoice({{ $transaksi->id }})" class="text-gray-500 hover:text-green-600">Cetak</button>
+                                        </div>
                                     </td>
                                 </tr>
                                 @empty
-                                <tr><td colspan="6" class="text-center py-8 text-gray-500">Tidak ada transaksi yang cocok dengan filter Anda.</td></tr>
+                                <tr><td colspan="7" class="text-center py-8 text-gray-500">Tidak ada transaksi yang cocok dengan filter Anda.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -127,4 +169,30 @@
         </div>
     </div>
     @endif
+@push('scripts')
+<script>
+    document.addEventListener('livewire:navigated', () => {
+        // ... listener lain (show-notification, dll.)
+
+        // Listener untuk konfirmasi batal
+            Livewire.on('show-cancel-confirmation', (event) => {
+                Swal.fire({
+                    title: 'Batalkan Transaksi Ini?',
+                    text: "Stok akan dikembalikan (jika berlaku). Aksi ini tidak bisa diurungkan.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Batalkan!',
+                    cancelButtonText: 'Tidak'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Livewire.dispatch('cancelConfirmed');
+                    }
+                });
+            });
+        });
+    </script>
+    @endpush
 </div>
+
+

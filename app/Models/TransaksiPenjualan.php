@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+
 
 class TransaksiPenjualan extends Model
 {
@@ -49,4 +51,25 @@ class TransaksiPenjualan extends Model
         // Nama relasi 'marketing' akan memanggil model 'Marketing'
         return $this->belongsTo(Marketing::class, 'id_marketing');
     }
+    
+    public function batalkan(): void
+    {
+        DB::transaction(function () {
+            // 1. Kembalikan stok HANYA JIKA transaksi ini sebelumnya BUKAN draft
+            if ($this->status_penjualan !== 'draft') {
+                foreach ($this->detail as $item) {
+                    if ($item->produk && $item->produk->lacak_stok) {
+                        $item->produk->increment('stok', $item->jumlah);
+                    }
+                }
+            }
+            
+            // 2. Ubah status transaksi menjadi 'dibatalkan'
+            $this->status_penjualan = 'dibatalkan';
+            $this->edited_by_id_pengguna = auth()->id();
+            $this->edited_at = now();
+            $this->save();
+        });
+    }
+
 }

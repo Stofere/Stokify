@@ -66,6 +66,31 @@
                 </div>
             </div>
 
+            {{-- Status Penjualan, Pembayaran, Pengiriman --}}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 border-t pt-4">
+                <div>
+                    <label for="status_penjualan" class="block text-sm font-medium text-gray-700">Status Nota</label>
+                    <select wire:model="status_penjualan" id="status_penjualan" class="mt-1 block w-full form-select rounded-md">
+                        <option value="pesanan">Pesanan</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status_pembayaran" class="block text-sm font-medium text-gray-700">Pembayaran</label>
+                    <select wire:model="status_pembayaran" id="status_pembayaran" class="mt-1 block w-full form-select rounded-md">
+                        <option value="belum_lunas">Belum Lunas</option>
+                        <option value="lunas">Lunas</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status_pengiriman" class="block text-sm font-medium text-gray-700">Pengiriman</label>
+                    <select wire:model="status_pengiriman" id="status_pengiriman" class="mt-1 block w-full form-select rounded-md">
+                        <option value="belum_terkirim">Belum Terkirim</option>
+                        <option value="terkirim">Terkirim</option>
+                    </select>
+                </div>
+            </div>
+
             {{-- Daftar Keranjang --}}
             <h3 class="text-lg font-medium border-t pt-2">Pesanan Baru</h3>
             <div class="flex-grow overflow-y-auto mt-2">

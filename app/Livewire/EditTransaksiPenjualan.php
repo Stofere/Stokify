@@ -22,14 +22,12 @@ class EditTransaksiPenjualan extends Component
     public TransaksiPenjualan $transaksi;
     
     // Properti Form
-    public $tanggal_transaksi;
-    public $id_pelanggan;
-    public $id_marketing; 
-    public $catatan;
+    public $tanggal_transaksi, $id_pelanggan, $id_marketing, $catatan;
+    public $status_penjualan, $status_pembayaran, $status_pengiriman;
     public $keranjang = [];
     public $totalHarga = 0;
     
-    // Data Master
+    // Data Master 
     public $semuaMarketing = [];
     public $semuaPelangganOptions = []; // untuk Tom Select 
     
@@ -41,10 +39,13 @@ class EditTransaksiPenjualan extends Component
     protected function rules()
     {
         return [
-            'tanggal_transaksi' => 'required|date',
+            'tanggal_transaksi' => 'required|date_format:Y-m-d\TH:i',
             'id_pelanggan' => 'nullable|exists:pelanggan,id',
             'id_marketing' => 'required|exists:marketing,id',
             'catatan' => 'nullable|string',
+            'status_penjualan' => 'required|in:draft,pesanan',
+            'status_pembayaran' => 'required|in:lunas,belum_lunas',
+            'status_pengiriman' => 'required|in:terkirim,belum_terkirim',
             'keranjang' => 'required|array|min:1',
         ];
     }
@@ -54,11 +55,15 @@ class EditTransaksiPenjualan extends Component
         $this->transaksi = $transaksi->load('detail.produk', 'editor');
 
         // isi properti dari data yang ada
-        $this->tanggal_transaksi = Carbon::parse($this->transaksi->tanggal_transaksi)->format('Y-m-d');
+        $this->tanggal_transaksi = Carbon::parse($this->transaksi->tanggal_transaksi)->format('Y-m-d\TH:i');
         $this->id_pelanggan = $this->transaksi->id_pelanggan;
         $this->id_marketing = $this->transaksi->id_marketing; 
         $this->catatan = $this->transaksi->catatan;
+        $this->status_penjualan = $this->transaksi->status_penjualan;
+        $this->status_pembayaran = $this->transaksi->status_pembayaran;
+        $this->status_pengiriman = $this->transaksi->status_pengiriman;
 
+        // Isi keranjang dari detail transaksi
         foreach ($this->transaksi->detail as $item) {
             $this->keranjang[] = [
                 'id_produk' => $item->id_produk,
@@ -172,6 +177,12 @@ class EditTransaksiPenjualan extends Component
         $this->hitungTotalHarga();
     }
 
+    public function filterByKategori($kategoriId)
+    {
+        $this->kategoriAktif = $kategoriId;
+        $this->resetPage(); // Reset paginasi ke halaman 1 saat filter diubah
+    }
+
     /**
      * Langkah 1: Memicu dialog konfirmasi sebelum update.
      */
@@ -188,44 +199,60 @@ class EditTransaksiPenjualan extends Component
     #[On('updateConfirmed')]
     public function updateTransaksi()
     {
+        $this->validate(); // Jalankan validasi sekali lagi untuk keamanan
+
         DB::transaction(function () {
-            // Logika koreksi stok yang kompleks
-            $detailLama = $this->transaksi->detail->keyBy('id_produk');
-            $idProdukDiKeranjang = collect($this->keranjang)->pluck('id_produk');
-
-            // 1. Kembalikan stok untuk item yang dihapus dari keranjang
-            $detailYangDihapus = $this->transaksi->detail()->whereNotIn('id_produk', $idProdukDiKeranjang)->get();
-            foreach ($detailYangDihapus as $itemDihapus) {
-                $produk = $itemDihapus->produk;
-                if ($produk && $produk->lacak_stok) {
-                    $produk->increment('stok', $itemDihapus->jumlah);
-                }
-                $itemDihapus->delete();
-            }
-
-            // 2. Update item yang ada di keranjang dan koreksi stoknya
-            foreach ($this->keranjang as $item) {
-                $produk = Produk::find($item['id_produk']);
-                if ($produk && $produk->lacak_stok) {
-                    $jumlahLama = $detailLama->get($item['id_produk'])->jumlah ?? 0;
-                    $selisih = $jumlahLama - $item['jumlah'];
-                    if ($selisih != 0) {
-                        $produk->increment('stok', $selisih);
+            // [LOGIKA KOREKSI STOK TERPUSAT YANG DISEMPURNAKAN]
+            
+            // Langkah A: Kembalikan semua stok lama ke sistem
+            if ($this->transaksi->status_penjualan !== 'draft') {
+                foreach ($this->transaksi->detail as $itemLama) {
+                    if ($itemLama->produk && $itemLama->produk->lacak_stok) {
+                        // Gunakan increment untuk operasi database yang aman
+                        $itemLama->produk->increment('stok', $itemLama->jumlah);
                     }
                 }
-                
-                DetailTransaksiPenjualan::updateOrCreate(
-                    ['id_transaksi_penjualan' => $this->transaksi->id, 'id_produk' => $item['id_produk']],
-                    ['jumlah' => $item['jumlah'], 'satuan_saat_transaksi' => $item['satuan'], 'harga_satuan_deal' => $item['harga_satuan_deal'], 'subtotal' => $item['subtotal']]
-                );
+            }
+            
+            // Hapus semua detail transaksi lama. Ini menyederhanakan logika.
+            $this->transaksi->detail()->delete();
+
+            // Siapkan data detail baru dari keranjang saat ini
+            $detailBaru = [];
+            foreach ($this->keranjang as $item) {
+                $detailBaru[] = [
+                    'id_produk' => $item['id_produk'],
+                    'jumlah' => $item['jumlah'],
+                    'satuan_saat_transaksi' => $item['satuan'], // <-- [FIX] PASTIKAN INI ADA
+                    'harga_satuan_deal' => $item['harga_satuan_deal'],
+                    'subtotal' => $item['subtotal'],
+                ];
             }
 
+            // Simpan semua detail item baru dengan satu query
+            $this->transaksi->detail()->createMany($detailBaru);
+
+            // Langkah B: Kurangi stok berdasarkan keranjang BARU (jika status BUKAN draft)
+            if ($this->status_penjualan !== 'draft') {
+                foreach ($this->keranjang as $item) {
+                    $produk = Produk::find($item['id_produk']);
+                    if ($produk && $produk->lacak_stok) {
+                        // Gunakan decrement untuk operasi database yang aman
+                        $produk->decrement('stok', $item['jumlah']);
+                    }
+                }
+            }
+
+            // Update data transaksi utama
             $this->transaksi->update([
                 'id_pelanggan' => $this->id_pelanggan,
                 'id_marketing' => $this->id_marketing, 
                 'tanggal_transaksi' => $this->tanggal_transaksi,
                 'total_harga' => $this->totalHarga,
                 'catatan' => $this->catatan,
+                'status_penjualan' => $this->status_penjualan,
+                'status_pembayaran' => $this->status_pembayaran,
+                'status_pengiriman' => $this->status_pengiriman,
                 'edited_by_id_pengguna' => auth()->id(),
                 'edited_at' => now(),
             ]);
@@ -235,11 +262,21 @@ class EditTransaksiPenjualan extends Component
         return redirect()->route('penjualan.riwayat');
     }
 
-    public function filterByKategori($kategoriId)
+    public function konfirmasiBatalDariEdit()
     {
-        $this->kategoriAktif = $kategoriId;
-        $this->resetPage(); // Reset paginasi ke halaman 1 saat filter diubah
+        // Tidak perlu properti baru, karena kita sudah punya $this->transaksi
+        $this->dispatch('show-cancel-confirmation-from-edit');
     }
+
+    #[On('cancelConfirmedFromEdit')]
+    public function batalkanTransaksiDariEdit()
+    {
+        $this->transaksi->batalkan();
+        $this->dispatch('show-notification', message: 'Transaksi berhasil dibatalkan.');
+        // Redirect kembali ke halaman riwayat
+        return redirect()->route('penjualan.riwayat');
+    }
+
 
     public function render()
     {
@@ -256,11 +293,9 @@ class EditTransaksiPenjualan extends Component
             ->paginate(12); // Tampilkan 12 produk per halaman (bisa disesuaikan)
             
         // Format options pelanggan setiap kali render
-        $this->semuaPelangganOptions = $this->getPelangganOptions();
+        $this->semuaPelangganOptions = Pelanggan::orderBy('nama')
+            ->get()->map(fn($p) => ['value' => $p->id, 'text' => $p->nama])->values()->all();
 
-        return view('livewire.edit-transaksi-penjualan', [
-            'produks' => $produks
-        ]);
+        return view('livewire.edit-transaksi-penjualan', [ 'produks' => $produks ]);
     }
-
 }
