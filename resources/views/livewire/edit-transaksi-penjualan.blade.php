@@ -82,7 +82,27 @@
                             @forelse($keranjang as $index => $item)
                                 <tr wire:key="keranjang-{{ $index }}">
                                     <td class="px-4 py-2 whitespace-nowrap">{{ $item['nama_produk'] }}</td>
-                                    <td class="px-4 py-2"><input type="number" step="0.01" wire:model.live.debounce.300ms="keranjang.{{ $index }}.jumlah" class="w-24 border-gray-300 rounded-md shadow-sm"></td>
+                                    <td class="px-4 py-2">
+                                        @php
+                                            $isDecimalUnit = in_array(strtolower($item['satuan']), ['kg', 'meter']);
+                                        @endphp
+                                        <input 
+                                            type="number"
+                                            {{-- Atribut step dinamis (sudah benar) --}}
+                                            step="{{ $isDecimalUnit ? '0.01' : '1' }}"
+                                            
+                                            {{-- [FIX] Tambahkan event listener Alpine.js untuk memblokir input --}}
+                                            x-data
+                                            @keydown="
+                                                if (!{{ $isDecimalUnit ? 'true' : 'false' }} && ['.', ','].includes($event.key)) {
+                                                    $event.preventDefault();
+                                                }
+                                            "
+                                            
+                                            wire:model.live.debounce.300ms="keranjang.{{ $index }}.jumlah" 
+                                            class="w-24 border-gray-300 rounded-md shadow-sm"
+                                        >
+                                    </td>
                                     <td class="px-4 py-2"><input type="number" step="1" wire:model.live.debounce.300ms="keranjang.{{ $index }}.harga_satuan_deal" class="w-40 border-gray-300 rounded-md shadow-sm"></td>
                                     <td class="px-4 py-2 whitespace-nowrap">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</td>
                                     <td class="px-4 py-2"><button wire:click="hapusItemDariKeranjang({{ $index }})" class="text-red-500 hover:text-red-700">✕</button></td>

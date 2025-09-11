@@ -65,6 +65,8 @@ class EditTransaksiPenjualan extends Component
 
         // Isi keranjang dari detail transaksi
         foreach ($this->transaksi->detail as $item) {
+            $stokProdukSaatIni = $item->produk->stok ?? 0;
+            
             $this->keranjang[] = [
                 'id_produk' => $item->id_produk,
                 'nama_produk' => $item->produk->nama_produk ?? 'Produk Dihapus',
@@ -73,7 +75,10 @@ class EditTransaksiPenjualan extends Component
                 'harga_satuan_deal' => (int) $item->harga_satuan_deal,
                 'subtotal' => (int) $item->subtotal,
                 'lacak_stok' => $item->produk->lacak_stok ?? false,
-                'stok_tersedia' => $item->produk->stok ?? 0,
+                
+                // [FIX] Ini adalah stok MAKSIMAL yang bisa diinput pengguna
+                // Stok saat ini DITAMBAH jumlah yang ada di nota ini
+                'stok_maksimal_edit' => $stokProdukSaatIni + (float)$item->jumlah,
             ];
         }
 
@@ -93,13 +98,14 @@ class EditTransaksiPenjualan extends Component
     }
     
 
-    // [SALIN SEMUA METHOD HELPER DARI BuatTransaksiPenjualan.php]
     public function tambahProdukKeKeranjang($produkId)
     {
         $produk = Produk::find($produkId);
-        if (!$produk) return;
+        if (!$produk) {
+            return;
+        }
 
-        // Cek jika produk sudah ada di keranjang
+        // Cari tahu apakah produk ini sudah ada di keranjang
         $keranjangIndex = null;
         foreach ($this->keranjang as $index => $item) {
             if ($item['id_produk'] == $produkId) {
@@ -108,32 +114,47 @@ class EditTransaksiPenjualan extends Component
             }
         }
 
-        // [FIX] LOGIKA VALIDASI STOK
-        // Tentukan jumlah yang sudah ada di keranjang
-        $jumlahDiKeranjang = ($keranjangIndex !== null) ? $this->keranjang[$keranjangIndex]['jumlah'] : 0;
-        
-        // Cek stok HANYA JIKA produknya dilacak
-        if ($produk->lacak_stok && ($jumlahDiKeranjang + 1) > $produk->stok) {
-            // Kirim notifikasi error ke frontend
-            $this->dispatch('show-notification', message: 'Stok tidak mencukupi!', type: 'error');
-            return; // Hentikan proses
-        }
-
+        // --- Skenario 1: Produk sudah ada di keranjang (menambah kuantitas) ---
         if ($keranjangIndex !== null) {
-            // Jika sudah ada, tambah jumlahnya
+            $item = $this->keranjang[$keranjangIndex];
+            $jumlahBerikutnya = $item['jumlah'] + 1;
+            
+            // Validasi menggunakan stok_maksimal_edit yang sudah kita siapkan di mount()
+            if ($item['lacak_stok'] && $jumlahBerikutnya > $item['stok_maksimal_edit']) {
+                $this->dispatch('show-notification', message: 'Stok tidak mencukupi!', type: 'error');
+                return;
+            }
+
             $this->keranjang[$keranjangIndex]['jumlah']++;
             $this->hitungSubtotal($keranjangIndex);
-        } else {
-            // Jika belum ada, tambahkan baru
+        } 
+        // --- Skenario 2: Produk baru ditambahkan ke nota yang sedang diedit ---
+        else {
+            // Validasi menggunakan stok aktual di database, karena ini item baru
+            if ($produk->lacak_stok && $produk->stok <= 0) {
+                $this->dispatch('show-notification', message: 'Stok produk habis!', type: 'error');
+                return;
+            }
+
+            $jumlahAwal = 1;
+            // Penanganan cerdas untuk satuan desimal jika stok kurang dari 1
+            $isDecimalUnit = in_array(strtolower($produk->satuan), ['kg', 'meter']);
+            if ($isDecimalUnit && $produk->lacak_stok && $produk->stok < 1) {
+                $jumlahAwal = (float) $produk->stok;
+            }
+
+            // Tambahkan item baru ke dalam array keranjang
             $this->keranjang[] = [
                 'id_produk' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
                 'satuan' => $produk->satuan,
-                'lacak_stok' => $produk->lacak_stok, // Simpan status pelacakan
-                'stok_tersedia' => $produk->stok, // Simpan stok awal
-                'jumlah' => 1,
+                'lacak_stok' => $produk->lacak_stok,
+                // 'stok_maksimal_edit' untuk item baru adalah stok aktual di DB
+                // karena tidak ada 'jumlah lama' yang perlu dikembalikan.
+                'stok_maksimal_edit' => (float) $produk->stok, 
+                'jumlah' => $jumlahAwal,
                 'harga_satuan_deal' => $produk->harga_jual_standar,
-                'subtotal' => $produk->harga_jual_standar,
+                'subtotal' => $produk->harga_jual_standar * $jumlahAwal,
             ];
             $this->hitungTotalHarga();
         }
@@ -144,18 +165,42 @@ class EditTransaksiPenjualan extends Component
     {
         $parts = explode('.', $key);
         $index = $parts[0];
-        $field = $parts[1];
+        $field = $parts[1] ?? null;
 
-        // [FIX] Tambahkan validasi saat quantity diubah manual di keranjang
-        if ($field === 'jumlah') {
+        if (isset($this->keranjang[$index])) {
             $item = $this->keranjang[$index];
-            if ($item['lacak_stok'] && $value > $item['stok_tersedia']) {
-                $this->keranjang[$index]['jumlah'] = $item['stok_tersedia']; // Reset ke nilai max
-                $this->dispatch('show-notification', message: 'Stok tidak mencukupi! Maksimal ' . $item['stok_tersedia'], type: 'error');
+            $isDecimalUnit = in_array(strtolower($item['satuan']), ['kg', 'meter']);
+
+            if ($field === 'jumlah') {
+                // [FIX #1] Jika satuan BUKAN desimal, paksa nilainya menjadi integer
+                if (!$isDecimalUnit) {
+                    // floor() akan membulatkan ke bawah (0.99 menjadi 0)
+                    // (int) akan mengubahnya menjadi tipe data integer
+                    $value = (int) floor($value);
+                    $this->keranjang[$index]['jumlah'] = $value;
+                }
+
+                $jumlahBaru = (float) $value;
+
+                // Jika jumlah 0 atau kurang, hapus item
+                if ($jumlahBaru <= 0) {
+                    $this->hapusItemDariKeranjang($index);
+                    $this->dispatch('show-notification', message: 'Item dihapus dari keranjang.', type: 'info');
+                    return;
+                }
+
+                // Validasi stok maksimal (sudah benar)
+                if ($item['lacak_stok'] && $jumlahBaru > $item['stok_maksimal_edit']) {
+                    $this->keranjang[$index]['jumlah'] = $item['stok_maksimal_edit'];
+                    $this->dispatch('show-notification', message: 'Stok tidak mencukupi! Maksimal ' . $item['stok_maksimal_edit'], type: 'error');
+                }
+            }
+            
+            // Pastikan item masih ada sebelum menghitung subtotal
+            if (isset($this->keranjang[$index])) {
+                $this->hitungSubtotal($index);
             }
         }
-        
-        $this->hitungSubtotal($index);
     }
     
     private function hitungSubtotal($index)

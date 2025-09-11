@@ -123,6 +123,13 @@ class BuatTransaksiPenjualan extends Component
         $produk = Produk::find($produkId);
         if (!$produk) return;
 
+        // [FIX] Pengecekan stok paling awal
+        // Hanya cek jika stok dilacak DAN stoknya nol atau kurang
+        if ($produk->lacak_stok && $produk->stok <= 0) {
+            $this->dispatch('show-notification', message: 'Stok produk habis!', type: 'error');
+            return;
+        }
+
         // Cek jika produk sudah ada di keranjang
         $keranjangIndex = null;
         foreach ($this->keranjang as $index => $item) {
@@ -132,32 +139,35 @@ class BuatTransaksiPenjualan extends Component
             }
         }
 
-        // [FIX] LOGIKA VALIDASI STOK
-        // Tentukan jumlah yang sudah ada di keranjang
-        $jumlahDiKeranjang = ($keranjangIndex !== null) ? $this->keranjang[$keranjangIndex]['jumlah'] : 0;
-        
-        // Cek stok HANYA JIKA produknya dilacak
-        if ($produk->lacak_stok && ($jumlahDiKeranjang + 1) > $produk->stok) {
-            // Kirim notifikasi error ke frontend
-            $this->dispatch('show-notification', message: 'Stok tidak mencukupi!', type: 'error');
-            return; // Hentikan proses
-        }
-
         if ($keranjangIndex !== null) {
-            // Jika sudah ada, tambah jumlahnya
+            // Jika sudah ada, validasi sebelum menambah jumlah
+            $jumlahBerikutnya = $this->keranjang[$keranjangIndex]['jumlah'] + 1;
+            if ($produk->lacak_stok && $jumlahBerikutnya > $produk->stok) {
+                $this->dispatch('show-notification', message: 'Stok tidak mencukupi!', type: 'error');
+                return;
+            }
             $this->keranjang[$keranjangIndex]['jumlah']++;
             $this->hitungSubtotal($keranjangIndex);
         } else {
-            // Jika belum ada, tambahkan baru
+            // Jika belum ada, tambahkan baru ke keranjang
+            $jumlahAwal = 1;
+            // [FIX] Untuk satuan desimal, jumlah awal bisa lebih kecil jika stok kurang dari 1
+            if (in_array(strtolower($produk->satuan), ['kg', 'meter'])) {
+                // Jika stok tersedia kurang dari 1, set jumlah awal ke sisa stok
+                if ($produk->lacak_stok && $produk->stok < 1) {
+                    $jumlahAwal = (float) $produk->stok;
+                }
+            }
+
             $this->keranjang[] = [
                 'id_produk' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
                 'satuan' => $produk->satuan,
-                'lacak_stok' => $produk->lacak_stok, // Simpan status pelacakan
-                'stok_tersedia' => $produk->stok, // Simpan stok awal
-                'jumlah' => 1,
+                'lacak_stok' => $produk->lacak_stok,
+                'stok_tersedia' => (float) $produk->stok, // Simpan sebagai float
+                'jumlah' => $jumlahAwal,
                 'harga_satuan_deal' => $produk->harga_jual_standar,
-                'subtotal' => $produk->harga_jual_standar,
+                'subtotal' => $produk->harga_jual_standar * $jumlahAwal,
             ];
             $this->hitungTotalHarga();
         }
@@ -168,18 +178,29 @@ class BuatTransaksiPenjualan extends Component
     {
         $parts = explode('.', $key);
         $index = $parts[0];
-        $field = $parts[1];
+        $field = $parts[1] ?? null;
 
-        // [FIX] Tambahkan validasi saat quantity diubah manual di keranjang
         if ($field === 'jumlah') {
+            // [FIX] Validasi untuk jumlah 0 atau negatif
+            if ($value <= 0) {
+                // Jika jumlah 0 atau kurang, hapus item dari keranjang
+                $this->hapusItemDariKeranjang($index);
+                $this->dispatch('show-notification', message: 'Item dihapus dari keranjang.', type: 'info');
+                return; // Hentikan eksekusi lebih lanjut
+            }
+
             $item = $this->keranjang[$index];
-            if ($item['lacak_stok'] && $value > $item['stok_tersedia']) {
-                $this->keranjang[$index]['jumlah'] = $item['stok_tersedia']; // Reset ke nilai max
+            
+            if ($item['lacak_stok'] && (float)$value > (float)$item['stok_tersedia']) {
+                $this->keranjang[$index]['jumlah'] = $item['stok_tersedia'];
                 $this->dispatch('show-notification', message: 'Stok tidak mencukupi! Maksimal ' . $item['stok_tersedia'], type: 'error');
             }
         }
         
-        $this->hitungSubtotal($index);
+        // Pastikan item masih ada sebelum menghitung subtotal
+        if (isset($this->keranjang[$index])) {
+            $this->hitungSubtotal($index);
+        }
     }
     
     private function hitungSubtotal($index)
@@ -252,7 +273,29 @@ class BuatTransaksiPenjualan extends Component
             $this->addError('id_pelanggan', 'Silahkan pilih pelanggan atau tambahkan pelanggan baru.');
             return;
         }
+        // [FIX] Validasi akhir untuk memastikan tidak ada item berjumlah 0
+        foreach ($this->keranjang as $index => $item) {
+            if ($item['jumlah'] <= 0) {
+                // Hapus item yang bermasalah secara diam-diam
+                unset($this->keranjang[$index]);
+                // Atau kirim pesan error
+                $this->dispatch('show-notification', message: 'Item ' . $item['nama_produk'] . ' memiliki jumlah 0 dan diabaikan.', type: 'warning');
+            }
+        }
+        // Re-index array setelah potensi penghapusan
+        $this->keranjang = array_values($this->keranjang);
+        $this->hitungTotalHarga(); // Hitung ulang total
+
+
+        // Validasi utama dari Livewire
         $this->validate();
+
+        // Jika setelah menghapus item berjumlah 0 keranjang menjadi kosong,
+        // jangan lanjutkan.
+        if (empty($this->keranjang)) {
+            $this->addError('keranjang', 'Keranjang tidak boleh kosong.');
+            return;
+        }
 
         // Jika validasi berhasil, kirim event ke Javascript untuk menampilkan dialog konfirmasi
         $this->dispatch('show-save-confirmation');
