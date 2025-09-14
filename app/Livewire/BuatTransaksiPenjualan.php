@@ -175,23 +175,38 @@ class BuatTransaksiPenjualan extends Component
     
     // Dipanggil setiap kali jumlah atau harga di keranjang berubah
     public function updatedKeranjang($value, $key)
-    {
-        $parts = explode('.', $key);
-        $index = $parts[0];
-        $field = $parts[1] ?? null;
+{
+    $parts = explode('.', $key);
+    $index = $parts[0];
+    $field = $parts[1] ?? null;
 
+    if (isset($this->keranjang[$index])) {
         if ($field === 'jumlah') {
-            // [FIX] Validasi untuk jumlah 0 atau negatif
-            if ($value <= 0) {
-                // Jika jumlah 0 atau kurang, hapus item dari keranjang
-                $this->hapusItemDariKeranjang($index);
-                $this->dispatch('show-notification', message: 'Item dihapus dari keranjang.', type: 'info');
-                return; // Hentikan eksekusi lebih lanjut
+            $item = $this->keranjang[$index];
+            $isDecimalUnit = in_array(strtolower($item['satuan']), ['kg', 'meter']);
+            
+            // Konversi nilai input ke float untuk perbandingan yang akurat
+            $jumlahBaru = (float) str_replace(',', '.', $value);
+
+            // [FIX] Validasi untuk jumlah 0 atau negatif yang sudah disempurnakan
+            if ($jumlahBaru <= 0) {
+                // HANYA hapus jika BUKAN satuan desimal.
+                // Untuk desimal, kita biarkan pengguna mengetik "0."
+                if (!$isDecimalUnit) {
+                    $this->hapusItemDariKeranjang($index);
+                    $this->dispatch('show-notification', message: 'Item dihapus dari keranjang.', type: 'info');
+                    return;
+                }
             }
 
-            $item = $this->keranjang[$index];
-            
-            if ($item['lacak_stok'] && (float)$value > (float)$item['stok_tersedia']) {
+            // Jika satuan BUKAN desimal, paksa nilainya menjadi integer
+            if (!$isDecimalUnit) {
+                $jumlahBaru = (int) floor($jumlahBaru);
+                $this->keranjang[$index]['jumlah'] = $jumlahBaru;
+            }
+
+            // Validasi stok maksimal
+            if ($item['lacak_stok'] && $jumlahBaru > (float)$item['stok_tersedia']) {
                 $this->keranjang[$index]['jumlah'] = $item['stok_tersedia'];
                 $this->dispatch('show-notification', message: 'Stok tidak mencukupi! Maksimal ' . $item['stok_tersedia'], type: 'error');
             }
@@ -202,6 +217,7 @@ class BuatTransaksiPenjualan extends Component
             $this->hitungSubtotal($index);
         }
     }
+}
     
     private function hitungSubtotal($index)
     {
@@ -273,33 +289,34 @@ class BuatTransaksiPenjualan extends Component
             $this->addError('id_pelanggan', 'Silahkan pilih pelanggan atau tambahkan pelanggan baru.');
             return;
         }
-        // [FIX] Validasi akhir untuk memastikan tidak ada item berjumlah 0
-        foreach ($this->keranjang as $index => $item) {
-            if ($item['jumlah'] <= 0) {
-                // Hapus item yang bermasalah secara diam-diam
-                unset($this->keranjang[$index]);
-                // Atau kirim pesan error
-                $this->dispatch('show-notification', message: 'Item ' . $item['nama_produk'] . ' memiliki jumlah 0 dan diabaikan.', type: 'warning');
-            }
+        // [FIX] Validasi akhir yang lebih ketat
+    $keranjangValid = true;
+    foreach ($this->keranjang as $index => $item) {
+        // Cek jika jumlahnya benar-benar nol atau kurang
+        if ((float) $item['jumlah'] <= 0) {
+            $keranjangValid = false;
+            // Beri pesan error yang spesifik
+            $this->addError('keranjang.' . $index . '.jumlah', 'Jumlah tidak boleh nol.');
         }
-        // Re-index array setelah potensi penghapusan
-        $this->keranjang = array_values($this->keranjang);
-        $this->hitungTotalHarga(); // Hitung ulang total
-
-
-        // Validasi utama dari Livewire
-        $this->validate();
-
-        // Jika setelah menghapus item berjumlah 0 keranjang menjadi kosong,
-        // jangan lanjutkan.
-        if (empty($this->keranjang)) {
-            $this->addError('keranjang', 'Keranjang tidak boleh kosong.');
-            return;
-        }
-
-        // Jika validasi berhasil, kirim event ke Javascript untuk menampilkan dialog konfirmasi
-        $this->dispatch('show-save-confirmation');
     }
+    
+    // Jika ditemukan item yang tidak valid, hentikan proses
+    if (!$keranjangValid) {
+        $this->dispatch('show-notification', message: 'Ada item di keranjang dengan jumlah tidak valid.', type: 'error');
+        return;
+    }
+
+    // Validasi utama dari Livewire
+    $this->validate();
+
+    // Cek keranjang kosong (tetap penting)
+    if (empty($this->keranjang)) {
+        $this->addError('keranjang', 'Keranjang tidak boleh kosong.');
+        return;
+    }
+
+    $this->dispatch('show-save-confirmation');
+}
 
     /**
      * Langkah 2: Dipanggil oleh event balasan dari JavaScript.
